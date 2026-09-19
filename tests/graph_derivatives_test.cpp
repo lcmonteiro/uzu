@@ -52,11 +52,8 @@ constexpr auto measure_derivatives() -> derivative_report {
   auto n2 = point2(init = {1.9, 0.4}, sigma = {1.0, 1.0});
 
   auto e1 = relative(sigma = {2.0, 3.0});
-  auto e2 = absolute(sigma = {2.0});
-  auto e3 = absolute(sigma = {1.5});
-
-  e2.measurement({0.0, 0.0});
-  e3.measurement({4.0, 2.0});
+  auto e2 = absolute(init = {0.0, 0.0}, sigma = {2.0});
+  auto e3 = absolute(init = {4.0, 2.0}, sigma = {1.5});
 
   auto g = uzu::graph{
       gradient{lr = 0.1},

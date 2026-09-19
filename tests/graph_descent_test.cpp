@@ -57,11 +57,8 @@ constexpr auto measure_descent() -> descent_report {
   auto n2 = point2(init = {2.5, 1.5}, sigma = {0.4, 0.4});
 
   auto e1 = relative(sigma = {2.0, 3.0});
-  auto e2 = absolute(sigma = {2.0});
-  auto e3 = absolute(sigma = {2.0});
-
-  e2.measurement({0.0, 0.0});
-  e3.measurement({4.0, 2.0});
+  auto e2 = absolute(init = {0.0, 0.0}, sigma = {2.0});
+  auto e3 = absolute(init = {4.0, 2.0}, sigma = {2.0});
 
   auto g = uzu::graph{
       gradient{lr = 0.05},

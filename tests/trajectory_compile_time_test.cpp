@@ -103,15 +103,13 @@ constexpr auto recover(std::index_sequence<Is...>, std::index_sequence<Js...>) -
     poses[i] = pose(init = {0.0, 0.0}, sigma = {0.01, 0.01});
 
     const auto truth = reference(i);
-    priors[i] = prior(sigma = {30.0, 30.0});
-    priors[i].measurement({truth[0], truth[1]});
+    priors[i] = prior(init = {truth[0], truth[1]}, sigma = {30.0, 30.0});
   }
   for (std::size_t j = 0; j < sizeof...(Js); ++j) {
     const auto from = reference(j);
     const auto to = reference(j + 1);
 
-    links[j] = between(sigma = {30.0, 30.0});
-    links[j].measurement({to[0] - from[0], to[1] - from[1]});
+    links[j] = between(init = {to[0] - from[0], to[1] - from[1]}, sigma = {30.0, 30.0});
   }
 
   auto graph = uzu::graph{

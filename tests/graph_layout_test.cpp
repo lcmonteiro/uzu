@@ -54,16 +54,13 @@ struct shared_report {
 constexpr auto measure_shared() -> shared_report {
   auto twice = point2(init = {1.0, 1.0}, sigma = {0.5, 0.5});
 
-  auto e1 = absolute(sigma = {2.0});
-  auto e2 = absolute(sigma = {2.0});
-  e1.measurement({3.0, 3.0});
-  e2.measurement({3.0, 3.0});
+  auto e1 = absolute(init = {3.0, 3.0}, sigma = {2.0});
+  auto e2 = absolute(init = {3.0, 3.0}, sigma = {2.0});
 
   auto both = uzu::graph{gradient{lr = 0.1}, nodes{key<1>(twice)}, edges{link<1>(e1), link<1>(e2)}};
 
   auto once = point2(init = {1.0, 1.0}, sigma = {0.5, 0.5});
-  auto e3 = absolute(sigma = {2.0});
-  e3.measurement({3.0, 3.0});
+  auto e3 = absolute(init = {3.0, 3.0}, sigma = {2.0});
 
   auto single = uzu::graph{gradient{lr = 0.1}, nodes{key<1>(once)}, edges{link<1>(e3)}};
 
@@ -103,8 +100,7 @@ constexpr auto measure_unlinked() -> unlinked_report {
   auto used = point2(init = {1.0, 1.0}, sigma = {0.5, 0.5});
   auto spare = point2(init = {5.0, 6.0}, sigma = {0.5, 0.5});
 
-  auto e = absolute(sigma = {2.0});
-  e.measurement({3.0, 3.0});
+  auto e = absolute(init = {3.0, 3.0}, sigma = {2.0});
 
   auto g = uzu::graph{gradient{lr = 0.1}, nodes{key<1>(used), key<2>(spare)}, edges{link<1>(e)}};
 
