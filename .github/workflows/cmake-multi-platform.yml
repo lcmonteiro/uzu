@@ -1,0 +1,73 @@
+# CMake CI for uzu, on GCC and Clang.
+#
+# uzu is header-only and depends on nothing outside the standard library, so there is no package
+# step here: checkout, configure, build, test. The build *is* most of the test run -- every
+# assertion in tests/ is a static_assert -- so a compile failure in the build step is a failed
+# property, and the ctest step confirms each binary was actually produced and ran.
+#
+# The two compilers spell the constant-evaluation budget differently
+# (-fconstexpr-ops-limit vs -fconstexpr-steps); CMakeLists.txt picks per compiler, and running
+# both is what keeps that from silently rotting. MSVC is not in the matrix: it needs
+# /constexpr:steps and has not been tried against these fits, so it is left to someone who can
+# iterate on a real Windows toolchain rather than guessed at a CI round trip at a time.
+name: CMake on multiple platforms
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      # Feedback for every combination, not just the first that breaks.
+      fail-fast: false
+
+      matrix:
+        os: [ubuntu-latest]
+        build_type: [Release]
+        c_compiler: [gcc, clang]
+        include:
+          - os: ubuntu-latest
+            c_compiler: gcc
+            cpp_compiler: g++
+          - os: ubuntu-latest
+            c_compiler: clang
+            cpp_compiler: clang++
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set reusable strings
+      id: strings
+      shell: bash
+      run: |
+        echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+
+    - name: Configure CMake
+      run: >
+        cmake -B ${{ steps.strings.outputs.build-output-dir }}
+        -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
+        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -S ${{ github.workspace }}
+
+    - name: Build
+      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+
+    - name: Test
+      working-directory: ${{ steps.strings.outputs.build-output-dir }}
+      # --output-on-failure prints each failing test's full stdout/stderr in the Actions log, so a
+      # failure is debuggable from the CI output alone.
+      run: ctest --build-config ${{ matrix.build_type }} --output-on-failure
+
+    - name: Upload test log on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ctest-log-${{ matrix.os }}-${{ matrix.c_compiler }}
+        path: ${{ steps.strings.outputs.build-output-dir }}/Testing/Temporary/LastTest.log
+        if-no-files-found: ignore
