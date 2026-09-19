@@ -25,8 +25,11 @@ evaluating the residual once.
   list, so the state is arrays and nothing is heap-allocated — which is also
   what lets a whole fit run inside a constant expression.
 - **Usable in a constant expression.** The library, the duals included, is
-  `constexpr` throughout. The test suite takes that literally: every assertion
-  is a `static_assert`, so [the tests are the compilation](#testing).
+  `constexpr` throughout — so a whole fit can run *in the compiler*, and its
+  answer be a compile-time constant. [See it done](#the-fit-runs-in-the-compiler),
+  and the optimizer nowhere in the resulting binary. The test suite takes the
+  same idea literally: every assertion is a `static_assert`, so
+  [the tests are the compilation](#testing).
 - **A redescending kernel.** Residuals go through `1 - (1 - z/N)^N`, Tukey's
   biweight generalised: past `sqrt(2N) * sigma` an outlier contributes nothing
   at all, and no derivative either. Built from squarings, so it needs nothing
@@ -49,6 +52,7 @@ evaluating the residual once.
 | [include/uzu/helpers/](include/uzu/helpers/) | The keyword vocabulary — `init`, `sigma`, `lr`, `beta`, `iterations` — shared by the graph and the algorithms and owned by neither. |
 | [include/uzu/optimization/](include/uzu/optimization/) | The optimizer: the `node` and `edge` bases, the `graph` that lays them out and fits them, the radial kernel, and the algorithms. |
 | [tests/](tests/) | The compile-time suite. Every assertion is a `static_assert`, built against a scalar-generic 2D graph fixture. |
+| [examples/](examples/) | A square recovered from its sides, fitted by the compiler — see [below](#the-fit-runs-in-the-compiler). |
 | [benchmarks/](benchmarks/) | Compile-time and run-time probes over the width of the derivative set. |
 | [docs/](docs/) | [The optimizer in detail](docs/design.md), and the two documents on the vendored duals. |
 
@@ -194,6 +198,118 @@ g.fit(iterations = 200);            // b - a is drawn towards (2, 1)
 
 ---
 
+## The fit runs in the compiler
+
+Four corners of a square, each measured only *relative* to the next one, plus
+one measurement saying where a single corner sits. No corner is told its own
+position — the square has to come out of the four sides agreeing with each
+other, and the anchor then places it.
+
+```
+c3 ______ c2          sides:  c1 - c0 = ( 2,  0)
+  |      |                    c2 - c1 = ( 0,  2)
+  |      |                    c3 - c2 = (-2,  0)
+  |______|                    c0 - c3 = ( 0, -2)
+c0        c1          anchor: c0      = ( 1,  1)
+```
+
+Every corner starts at the origin, on top of every other, so the fit has to
+separate them as well as place them. Here is the whole of it —
+[examples/compile_time_fit.cpp](examples/compile_time_fit.cpp) is this, with
+the node and edge types written out:
+
+```cpp
+constexpr auto solve() -> square {
+  auto c0 = corner(init = {0.0, 0.0}, sigma = {0.005, 0.005});
+  /* c1, c2, c3 the same */
+
+  auto bottom = side(sigma = {4.0, 4.0});   bottom.measurement({ 2.0,  0.0});
+  auto right  = side(sigma = {4.0, 4.0});   right.measurement ({ 0.0,  2.0});
+  auto top    = side(sigma = {4.0, 4.0});   top.measurement   ({-2.0,  0.0});
+  auto closing = side(sigma = {4.0, 4.0});  closing.measurement({ 0.0, -2.0});
+  auto at     = anchor(sigma = {4.0, 4.0}); at.measurement    ({ 1.0,  1.0});
+
+  auto graph = uzu::graph{
+      momentum{lr = 0.05, beta = 0.9},
+      nodes{key<0>(c0), key<1>(c1), key<2>(c2), key<3>(c3)},
+      edges{link<0, 1>(bottom), link<1, 2>(right), link<2, 3>(top),
+            link<3, 0>(closing), link<0>(at)}};
+
+  graph.fit(iterations = 200);
+  return {{c0.estimation(), c1.estimation(), c2.estimation(), c3.estimation()},
+          graph.error()};
+}
+
+// The line that matters. `constexpr` is not decoration here: it says the
+// initializer must be a constant expression, so the compiler has to run the
+// whole fit — build the graph, seed the duals, take two hundred passes of
+// gradient descent with momentum — and fail to compile if it cannot.
+constexpr auto fitted = solve();
+```
+
+Which means the answer can be checked while the program is still being
+compiled. A failure here is not a red test, it is a build that does not finish:
+
+```cpp
+static_assert(at_corner<0>(1.0, 1.0), "the anchored corner sits where it was measured");
+static_assert(at_corner<1>(3.0, 1.0), "two units along x from it");
+static_assert(at_corner<2>(3.0, 3.0), "and two up, so the sides are square");
+static_assert(at_corner<3>(1.0, 3.0), "and the fourth closes the loop");
+static_assert(fitted.error < 1e-6,    "all five measurements are satisfied at once");
+
+// And because it is a constant, it can go where only a constant can.
+using side_length = std::integral_constant<int, /* corner 1 minus corner 0 */>;
+static_assert(side_length::value == 2, "the square the fit found is two units on a side");
+```
+
+```
+$ cmake --build build --target uzu_compile_time_fit   # about 3 s on GCC
+$ ./build/examples/uzu_compile_time_fit
+
+a 2 x 2 square, solved before this program started running:
+
+  corner 0 = (1.0014, 1.0014)
+  corner 1 = (3.0019, 1.0020)
+  corner 2 = (3.0021, 3.0021)
+  corner 3 = (1.0020, 3.0019)
+
+  error = 1.64e-07
+```
+
+### The compiled program contains no optimizer
+
+That is the part worth checking rather than taking on faith. Build the same
+example twice — once as written, once with the anchor read from `argv` so
+nothing can be folded away — and compare what lands in the binary:
+
+| the fit runs at | `.text` | functions emitted |
+| --- | ---: | ---: |
+| **compile time** | **377 B** | **11** |
+| run time | 5290 B | 16 |
+
+`main` in the compile-time build is three `printf` calls and a loop over four
+pairs of doubles. There is no graph in it, no dual number, and no descent —
+those are all in the compiler's memory, and none of them survived into the
+program. The answer did. `objdump -s -j .rodata` on the compile-time build dumps the
+read-only data, and decoding the bytes of the `fitted` object that `main`
+reads from gives:
+
+```
+1.0014  1.0014    3.0019  1.0020    3.0021  3.0021    1.0020  3.0019
+```
+
+Eight doubles, which are the four corners, sitting in the executable as data.
+The optimization is not fast in this program — it already happened.
+
+> GCC needs no flag for this: its default constant-evaluation budget is about
+> thirty million operations and the fit uses fewer. Clang's default is about a
+> million, so it wants `-fconstexpr-steps=10000000`. `CMakeLists.txt` asks for
+> whichever the compiler in use spells, so `cmake --build` is all that is
+> needed either way.
+
+
+---
+
 ## Configuration
 
 An algorithm is stated where the graph is built, next to the nodes and edges it
@@ -242,7 +358,7 @@ actually built.
 | [optimization_trajectory_test.cpp](tests/optimization_trajectory_test.cpp) | A noisy 12- and 24-pose trajectory with random initial guesses and loop closures, recovered to within vortex's own accuracy bound. The one test here that runs rather than compiles, and most of the suite's build time. |
 | [dual_test.cpp](tests/dual_test.cpp), [dual_array_test.cpp](tests/dual_array_test.cpp) | The duals themselves, as run-time programs carried over from the vendored snapshot. |
 
-A clean build of the whole suite takes about 45 s on GCC and 55 s on Clang
+A clean build of the whole suite takes about 47 s on GCC and 59 s on Clang
 with `-j`, most of it the trajectory pair. Every test is deterministic: the
 randomized problem draws from `mt19937` directly rather than through
 `std::uniform_real_distribution`, which is not specified to give the same

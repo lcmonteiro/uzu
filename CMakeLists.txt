@@ -14,6 +14,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 option(UZU_BUILD_TESTS "Build uzu tests" ON)
+option(UZU_BUILD_EXAMPLES "Build uzu examples" ON)
 option(UZU_BUILD_BENCHMARKS "Build uzu benchmarks" OFF)
 
 # ---------------------------------------------------------------------------
@@ -68,6 +69,10 @@ endfunction()
 if(UZU_BUILD_TESTS)
   enable_testing()
   add_subdirectory(tests)
+endif()
+
+if(UZU_BUILD_EXAMPLES)
+  add_subdirectory(examples)
 endif()
 
 if(UZU_BUILD_BENCHMARKS)
