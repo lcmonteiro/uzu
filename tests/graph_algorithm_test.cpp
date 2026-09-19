@@ -46,10 +46,8 @@ constexpr auto measure_no_decay() -> decay_report {
   auto a = point2(init = {1.0, 1.0}, sigma = {0.5, 0.5});
   auto b = point2(init = {1.0, 1.0}, sigma = {0.5, 0.5});
 
-  auto e1 = absolute(sigma = {2.0});
-  auto e2 = absolute(sigma = {2.0});
-  e1.measurement({3.0, -2.0});
-  e2.measurement({3.0, -2.0});
+  auto e1 = absolute(init = {3.0, -2.0}, sigma = {2.0});
+  auto e2 = absolute(init = {3.0, -2.0}, sigma = {2.0});
 
   auto plain = pulled(a, e1, gradient{lr = 0.1});
   auto heavy = pulled(b, e2, momentum{lr = 0.1, beta = 0.0});
@@ -87,8 +85,7 @@ constexpr auto measure_velocity() -> velocity_report {
 
   auto n = point2(init = {1.0, 1.0}, sigma = {0.5, 0.5});
 
-  auto e = absolute(sigma = {2.0});
-  e.measurement({3.0, -2.0});
+  auto e = absolute(init = {3.0, -2.0}, sigma = {2.0});
 
   auto g = pulled(n, e, momentum{lr = rate, beta = decay});
 
@@ -130,15 +127,13 @@ constexpr auto measure_builder() -> builder_report {
   const auto builder = momentum{lr = 0.1, beta = 0.9};
 
   auto a = point2(init = {1.0, 1.0}, sigma = {0.5, 0.5});
-  auto e1 = absolute(sigma = {2.0});
-  e1.measurement({3.0, -2.0});
+  auto e1 = absolute(init = {3.0, -2.0}, sigma = {2.0});
 
   auto first = pulled(a, e1, builder);
   first.fit(iterations = 100);
 
   auto b = point2(init = {1.0, 1.0}, sigma = {0.5, 0.5});
-  auto e2 = absolute(sigma = {2.0});
-  e2.measurement({3.0, -2.0});
+  auto e2 = absolute(init = {3.0, -2.0}, sigma = {2.0});
 
   auto second = pulled(b, e2, builder);
 
@@ -162,8 +157,7 @@ static_assert(close(builder.stepped, builder.expected, 1e-12), "a second graph s
 template <class Algorithm>
 constexpr auto passes_to(Algorithm algorithm, double target, int limit) -> int {
   auto n = point2(init = {1.0, 1.0}, sigma = {0.5, 0.5});
-  auto e = absolute(sigma = {2.0});
-  e.measurement({3.0, -2.0});
+  auto e = absolute(init = {3.0, -2.0}, sigma = {2.0});
 
   auto g = pulled(n, e, algorithm);
 

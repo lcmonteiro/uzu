@@ -36,7 +36,8 @@ evaluating the residual once.
   from `<cmath>`.
 - **Keyword arguments.** `init`, `sigma`, `lr`, `beta` and `iterations` are
   named, so a node or an edge is built from what its values mean rather than
-  from the order they are written in.
+  from the order they are written in. A node takes `init` and `sigma`; an edge
+  takes the same two, where `init` is the measurement.
 - **No dependencies.** The standard library, and nothing else.
 
 ---
@@ -175,8 +176,7 @@ using uzu::key, uzu::link, uzu::lr, uzu::nodes, uzu::sigma;
 
 auto a = point(init = {0.0, 0.0}, sigma = {0.4, 0.4});
 auto b = point(init = {3.0, 1.0}, sigma = {0.4, 0.4});
-auto e = between(sigma = {2.0, 2.0});
-e.measurement({2.0, 1.0});          // b - a was measured at (2, 1)
+auto e = between(init = {2.0, 1.0}, sigma = {2.0, 2.0});   // b - a was measured at (2, 1)
 
 auto g = uzu::graph{
     gradient{lr = 0.05},
@@ -189,9 +189,12 @@ g.fit(iterations = 200);            // b - a is drawn towards (2, 1)
 ### Defining your own problem
 
 1. **Node** — subclass `uzu::node<Derived, Estimation, Dimension>` and
-   implement a scalar-generic `plus(delta)` manifold retraction.
+   implement a scalar-generic `plus(delta)` manifold retraction. Build it with
+   `init` (the starting estimate) and `sigma`.
 2. **Edge** — subclass `uzu::edge<Derived, Measurement, Dimension>` and
-   implement a scalar-generic `error(...)`.
+   implement a scalar-generic `error(...)`. Build it with `init` (the
+   measurement) and `sigma`, or set the measurement later with
+   `measurement(...)` when it arrives from somewhere else.
 3. **Graph** — `uzu::graph{algorithm, nodes{key<N>(...)...}, edges{link<N...>(...)...}}`,
    in that order: how to step, what to estimate, what constrains it.
 4. Set estimations & measurements, call `fit(iterations = ...)`.
@@ -223,11 +226,11 @@ constexpr auto solve() -> square {
   auto c0 = corner(init = {0.0, 0.0}, sigma = {0.005, 0.005});
   /* c1, c2, c3 the same */
 
-  auto bottom = side(sigma = {4.0, 4.0});   bottom.measurement({ 2.0,  0.0});
-  auto right  = side(sigma = {4.0, 4.0});   right.measurement ({ 0.0,  2.0});
-  auto top    = side(sigma = {4.0, 4.0});   top.measurement   ({-2.0,  0.0});
-  auto closing = side(sigma = {4.0, 4.0});  closing.measurement({ 0.0, -2.0});
-  auto at     = anchor(sigma = {4.0, 4.0}); at.measurement    ({ 1.0,  1.0});
+  auto bottom  = side  (init = { 2.0,  0.0}, sigma = {4.0, 4.0});
+  auto right   = side  (init = { 0.0,  2.0}, sigma = {4.0, 4.0});
+  auto top     = side  (init = {-2.0,  0.0}, sigma = {4.0, 4.0});
+  auto closing = side  (init = { 0.0, -2.0}, sigma = {4.0, 4.0});
+  auto at      = anchor(init = { 1.0,  1.0}, sigma = {4.0, 4.0});
 
   auto graph = uzu::graph{
       momentum{lr = 0.05, beta = 0.9},

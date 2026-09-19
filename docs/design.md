@@ -262,6 +262,24 @@ call site, so `lr = 1` means `lr = 1.0`. Without that, the integer would reach
 a `double` member through a braced initialiser, which is a narrowing conversion
 and diagnosed as one.
 
+`init` means the same thing on both bases, which is why both take it: the
+value the thing is built holding. On a node that is the starting estimate, on
+an edge the measurement, and in each case it is the other half of what `sigma`
+weighs. So an edge is written the way a node is -
+
+```cpp
+auto n = point2(init = {1.0, 1.0}, sigma = {0.5, 0.5});
+auto e = absolute(init = {3.0, 3.0}, sigma = {2.0});
+```
+
+- rather than constructed and then completed through a setter. The setter is
+still there, because a measurement that arrives later has to go somewhere; it
+is just no longer how an edge is *declared*.
+
+An edge that compares against nothing declares `std::array<double, 0>` and
+takes `sigma` alone. Giving that one an `init` is a compile error naming the
+mistake, rather than a value dropped into a coordinate that does not exist.
+
 ### Operations an edge reaches for
 
 `uzu.h` includes only the operations the fit itself performs -

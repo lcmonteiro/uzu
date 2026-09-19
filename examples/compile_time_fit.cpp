@@ -108,20 +108,15 @@ constexpr auto solve() -> square {
   auto c2 = corner(init = {0.0, 0.0}, sigma = {0.005, 0.005});
   auto c3 = corner(init = {0.0, 0.0}, sigma = {0.005, 0.005});
 
-  // Sigma on an edge is the measurement's: where a residual stops being ordinary. The corners
-  // start up to three units from where they belong, so this has to be wide enough that they are
-  // still being pulled on the first pass.
-  auto bottom = side(sigma = {4.0, 4.0});
-  auto right = side(sigma = {4.0, 4.0});
-  auto top = side(sigma = {4.0, 4.0});
-  auto closing = side(sigma = {4.0, 4.0});
-  auto at = anchor(sigma = {4.0, 4.0});
-
-  bottom.measurement({2.0, 0.0});
-  right.measurement({0.0, 2.0});
-  top.measurement({-2.0, 0.0});
-  closing.measurement({0.0, -2.0});
-  at.measurement({1.0, 1.0});
+  // An edge is a measurement and the sigmas it is weighed with, and `init` gives the first the
+  // way it gives a corner its estimate. Sigma on an edge is the measurement's: where a residual
+  // stops being ordinary. The corners start up to three units from where they belong, so this
+  // has to be wide enough that they are still being pulled on the first pass.
+  auto bottom = side(init = {2.0, 0.0}, sigma = {4.0, 4.0});
+  auto right = side(init = {0.0, 2.0}, sigma = {4.0, 4.0});
+  auto top = side(init = {-2.0, 0.0}, sigma = {4.0, 4.0});
+  auto closing = side(init = {0.0, -2.0}, sigma = {4.0, 4.0});
+  auto at = anchor(init = {1.0, 1.0}, sigma = {4.0, 4.0});
 
   // Three things in a fixed order: how to step, what to estimate, and what constrains it. The
   // keys are compile-time constants, so each corner gets exactly one block of dual indices no

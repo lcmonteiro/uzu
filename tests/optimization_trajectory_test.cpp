@@ -32,6 +32,7 @@
 
 using uzu::edges;
 using uzu::gradient;
+using uzu::init;
 using uzu::iterations;
 using uzu::key;
 using uzu::link;
@@ -155,16 +156,17 @@ auto recover(std::index_sequence<Is...>, std::index_sequence<Js...>) -> accuracy
     });
 
     const auto truth = reference(i, Setup);
-    priors[i] = prior(sigma = {Setup.edge_sigma, Setup.edge_sigma});
-    priors[i].measurement({noisy(truth[0]), noisy(truth[1])});
+    priors[i] = prior(
+        init = {noisy(truth[0]), noisy(truth[1])}, sigma = {Setup.edge_sigma, Setup.edge_sigma});
   }
 
   for (std::size_t j = 0; j < sizeof...(Js); ++j) {
     const auto from = reference(pairs[j].first, Setup);
     const auto to = reference(pairs[j].second, Setup);
 
-    loops[j] = between(sigma = {Setup.edge_sigma, Setup.edge_sigma});
-    loops[j].measurement({noisy(to[0] - from[0]), noisy(to[1] - from[1])});
+    loops[j] = between(
+        init = {noisy(to[0] - from[0]), noisy(to[1] - from[1])},
+        sigma = {Setup.edge_sigma, Setup.edge_sigma});
   }
 
   auto graph = uzu::graph{
