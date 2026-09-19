@@ -234,9 +234,17 @@ constexpr auto solve() -> square {
 
   auto graph = uzu::graph{
       momentum{lr = 0.05, beta = 0.9},
-      nodes{key<0>(c0), key<1>(c1), key<2>(c2), key<3>(c3)},
-      edges{link<0, 1>(bottom), link<1, 2>(right), link<2, 3>(top),
-            link<3, 0>(closing), link<0>(at)}};
+      nodes{
+          key<0>(c0),
+          key<1>(c1),
+          key<2>(c2),
+          key<3>(c3)},
+      edges{
+          link<0, 1>(bottom),
+          link<1, 2>(right),
+          link<2, 3>(top),
+          link<3, 0>(closing),
+          link<0>(at)}};
 
   graph.fit(iterations = 200);
   return {{c0.estimation(), c1.estimation(), c2.estimation(), c3.estimation()},
