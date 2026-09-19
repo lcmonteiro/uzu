@@ -448,6 +448,16 @@ fit *looking* wrong. One file per property group, each built against
   leaves the second starting from rest however hard the first was run - the
   property the builder-and-instance split exists to give.
 - Sigma broadcasting, and keyword order independence.
+- **A four-pose chain is recovered exactly**, started from a single point that
+  every pose shares, so the fit has to separate them as well as place them -
+  and recovered by the compiler, like everything above it.
+- **A noisy trajectory is recovered**, at 12 and 24 poses with random initial
+  guesses up to 90 units out, 15% multiplicative measurement noise, and four
+  loop closures per pose. This is vortex's `optimization_trajectory_test`
+  asked of a gradient-descent fit, and it is the one test here that runs
+  rather than compiles - see its own comments for the measured accuracy, and
+  for the two sigmas and the step size the problem has to supply that vortex's
+  Levenberg-Marquardt works out for itself.
 
 ## Where this departs from the sketch it came from
 

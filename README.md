@@ -238,7 +238,15 @@ actually built.
 | [graph_descent_test.cpp](tests/graph_descent_test.cpp) | The error never rises across 200 passes, and an exact reflection symmetry survives the fit. |
 | [graph_algorithm_test.cpp](tests/graph_algorithm_test.cpp) | `beta = 0` is plain descent exactly; the velocity accumulates as written; a builder carries no state; momentum converges in fewer passes. |
 | [keywords_test.cpp](tests/keywords_test.cpp) | Sigma broadcasting, and keyword order independence. |
+| [trajectory_compile_time_test.cpp](tests/trajectory_compile_time_test.cpp) | A four-pose chain, started from one point, recovered exactly — by the compiler. |
+| [optimization_trajectory_test.cpp](tests/optimization_trajectory_test.cpp) | A noisy 12- and 24-pose trajectory with random initial guesses and loop closures, recovered to within vortex's own accuracy bound. The one test here that runs rather than compiles, and most of the suite's build time. |
 | [dual_test.cpp](tests/dual_test.cpp), [dual_array_test.cpp](tests/dual_array_test.cpp) | The duals themselves, as run-time programs carried over from the vendored snapshot. |
+
+A clean build of the whole suite takes about 45 s on GCC and 55 s on Clang
+with `-j`, most of it the trajectory pair. Every test is deterministic: the
+randomized problem draws from `mt19937` directly rather than through
+`std::uniform_real_distribution`, which is not specified to give the same
+sequence across standard libraries, so both compilers print the same numbers.
 
 ---
 
@@ -255,6 +263,13 @@ For the Gauss-Newton end of the same idea — Levenberg–Marquardt, Cholesky/PC
 back-ends, `std::pmr` arenas — see
 [vortex](https://github.com/lcmonteiro/vortex), which shares this library's
 ancestry and this repository's layout.
+
+[optimization_trajectory_test.cpp](tests/optimization_trajectory_test.cpp) runs
+vortex's own trajectory problem here, and is the most direct measurement of what
+that difference costs: uzu recovers the reference to within vortex's accuracy
+bound, but at 12 and 24 poses rather than 100 and 600, and only after being told
+two sigmas and a step size that vortex's solver works out for itself. Its
+comments carry the measured numbers.
 
 ---
 

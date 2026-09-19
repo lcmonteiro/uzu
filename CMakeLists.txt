@@ -37,12 +37,17 @@ add_library(uzu::uzu ALIAS uzu)
 # the budget the same way the tests below do. See uzu_constexpr_budget() for the per-compiler flag.
 # ---------------------------------------------------------------------------
 function(uzu_constexpr_budget target)
+  set(budget 100000000)
+  if(ARGC GREATER 1)
+    set(budget ${ARGV1})
+  endif()
+
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    target_compile_options(${target} PRIVATE -fconstexpr-steps=100000000)
+    target_compile_options(${target} PRIVATE -fconstexpr-steps=${budget})
   elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    target_compile_options(${target} PRIVATE -fconstexpr-ops-limit=100000000)
+    target_compile_options(${target} PRIVATE -fconstexpr-ops-limit=${budget})
   elseif(MSVC)
-    target_compile_options(${target} PRIVATE /constexpr:steps100000000)
+    target_compile_options(${target} PRIVATE /constexpr:steps${budget})
   endif()
 endfunction()
 
