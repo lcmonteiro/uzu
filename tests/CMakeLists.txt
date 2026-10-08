@@ -11,6 +11,7 @@ set(UZU_COMPILE_TIME_TESTS
   graph_layout_test.cpp
   graph_descent_test.cpp
   graph_algorithm_test.cpp
+  graph_contracts_test.cpp
   keywords_test.cpp
   trajectory_compile_time_test.cpp)
 
