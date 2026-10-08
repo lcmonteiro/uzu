@@ -364,6 +364,7 @@ actually built.
 | [graph_layout_test.cpp](tests/graph_layout_test.cpp) | One block per declared node however many edges name it, holding the sum of what reaches it; an unlinked node laid out and left alone. |
 | [graph_descent_test.cpp](tests/graph_descent_test.cpp) | The error never rises across 200 passes, and an exact reflection symmetry survives the fit. |
 | [graph_algorithm_test.cpp](tests/graph_algorithm_test.cpp) | `beta = 0` is plain descent exactly; the velocity accumulates as written; a builder carries no state; momentum converges in fewer passes. |
+| [graph_contracts_test.cpp](tests/graph_contracts_test.cpp) | The key checks on their own: a repeated key and an edge over an undeclared key are both caught; empty node and edge lists pass. |
 | [keywords_test.cpp](tests/keywords_test.cpp) | Sigma broadcasting, and keyword order independence. |
 | [trajectory_compile_time_test.cpp](tests/trajectory_compile_time_test.cpp) | A four-pose chain, started from one point, recovered exactly — by the compiler. |
 | [optimization_trajectory_test.cpp](tests/optimization_trajectory_test.cpp) | A noisy 12- and 24-pose trajectory with random initial guesses and loop closures, recovered to within vortex's own accuracy bound. The one test here that runs rather than compiles, and most of the suite's build time. |

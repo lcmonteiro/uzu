@@ -20,6 +20,7 @@
 #include "uzu/foundation/dual/operations/multiplies.hpp"
 #include "uzu/foundation/dual/operations/plus.hpp"
 #include "uzu/helpers/keywords.hpp"
+#include "uzu/optimization/graph_contracts.hpp"
 #include "uzu/optimization/graph_edge.hpp"
 #include "uzu/optimization/graph_kernel.hpp"
 #include "uzu/optimization/graph_node.hpp"
@@ -125,61 +126,13 @@ class graph<Algorithm, nodes<Ns...>, edges<Ls...>> {
   static constexpr std::array<std::size_t, node_count> keys{Ns::key...};
   static constexpr std::array<std::size_t, node_count> widths{Ns::dimension...};
 
-  /// @brief Whether every declared node carries a distinct key.
-  ///
-  /// Without this a repeated key is silent and wrong rather than an error:
-  /// the lookups take the first node that matches, so both would read the
-  /// same gradient and step identically, while the second one's block sat in
-  /// the layout with nothing referring to it.
-  static constexpr auto distinct_keys() -> bool {
-    for (std::size_t i = 0; i < node_count; ++i) {
-      for (std::size_t j = i + 1; j < node_count; ++j) {
-        if (keys[i] == keys[j]) {
-          return false;
-        }
-      }
-    }
-    return true;
-  }
-
-  static_assert(distinct_keys(), "two nodes are declared under the same key");
+  static_assert(impl::distinct_keys(keys), "two nodes are declared under the same key");
+  static_assert(impl::edges_resolve<Ls...>(keys), "an edge links a key no node declares");
 
   /// @brief Which node entry carries @p wanted, or #node_count if none does.
-  ///
-  /// The one scan over the keys. Everything that has to find a node - the
-  /// layout, the lookups, and the check below that every edge names something
-  /// - goes through here rather than repeating it.
   static constexpr auto node_of(std::size_t wanted) -> std::size_t {
-    for (std::size_t i = 0; i < node_count; ++i) {
-      if (keys[i] == wanted) {
-        return i;
-      }
-    }
-    return node_count;
+    return impl::find_key(keys, wanted);
   }
-
-  /// @brief Whether every key one edge links is declared.
-  template <std::size_t N>
-  static constexpr auto resolves(const std::array<std::size_t, N> &named) -> bool {
-    for (const std::size_t wanted : named) {
-      if (node_of(wanted) == node_count) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  /// @brief Whether every edge links only declared keys.
-  ///
-  /// Checked here, at the class, rather than where an edge's nodes are looked
-  /// up: the edges are all in hand, so waiting until something instantiates
-  /// the fit would only mean reporting a fixed mistake later and behind a
-  /// wall of tuple diagnostics.
-  static constexpr auto edges_resolve() -> bool {
-    return (true && ... && resolves(Ls::keys));
-  }
-
-  static_assert(edges_resolve(), "an edge links a key no node declares");
 
  public:
   using value_type = double;
