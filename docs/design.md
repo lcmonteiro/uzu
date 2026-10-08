@@ -21,8 +21,9 @@ include/
     graph_edge.hpp                      the edge base
     graph_kernel.hpp                    the radial kernel
     graph_algorithm.hpp                 what an algorithm has to supply
-    graph_algorithm_gradient.hpp        plain descent
-    graph_algorithm_momentum.hpp        the heavy ball
+    graph_algorithms/
+      gradient.hpp                      plain descent
+      momentum.hpp                      the heavy ball
   uzu/foundation/dual/                  the dual numbers
 ```
 
@@ -206,7 +207,7 @@ auto step(value_type gradient) -> value_type {
 
 `momentum` is the heavy ball: each index carries a velocity - one array slot,
 no allocation - that the bounded gradient accelerates and `beta` bleeds away.
-It lives in `uzu/optimization/graph_algorithm_momentum.hpp`, one header per algorithm, each
+It lives in `uzu/optimization/graph_algorithms/momentum.hpp`, one header per algorithm, each
 of which compiles on its own.
 
 ```cpp

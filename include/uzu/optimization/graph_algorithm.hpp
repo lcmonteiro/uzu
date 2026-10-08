@@ -51,7 +51,7 @@
 #ifndef UZU_OPTIMIZATION_GRAPH_ALGORITHM_HPP
 #define UZU_OPTIMIZATION_GRAPH_ALGORITHM_HPP
 
-#include "uzu/optimization/graph_algorithm_gradient.hpp"
-#include "uzu/optimization/graph_algorithm_momentum.hpp"
+#include "uzu/optimization/graph_algorithms/gradient.hpp"
+#include "uzu/optimization/graph_algorithms/momentum.hpp"
 
 #endif  // UZU_OPTIMIZATION_GRAPH_ALGORITHM_HPP
