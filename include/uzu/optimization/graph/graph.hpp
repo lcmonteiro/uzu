@@ -66,8 +66,9 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   static_assert(layout::distinct_keys, "two nodes are declared under the same key");
   static_assert(impl::edges_resolve<layout, Es...>, "an edge links a key no node declares");
 
+  /// @brief The entry of the edge declared @p I-th: its type and the keys it links.
   template <std::size_t I>
-  using edge_at = std::tuple_element_t<I, std::tuple<Es...>>;
+  using edge_entry_at = std::tuple_element_t<I, std::tuple<Es...>>;
 
  public:
   using value_type = double;
@@ -137,11 +138,11 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   /// a fold over paired sequences rather than an index-driven loop.
   template <std::size_t I>
   constexpr auto edge_error() const {
-    using entry = edge_at<I>;
-    const auto *edge = std::get<I>(edges_).target;
+    using entry = edge_entry_at<I>;
+    const auto &edge = edge_at<I>();
 
     const auto residuals = dual::apply(
-        [&](const auto &...inputs) { return edge->error(inputs...); },
+        [&](const auto &...inputs) { return edge.error(inputs...); },
         edge_inputs<I>(std::make_index_sequence<entry::arity>{}));
 
     static_assert(
@@ -149,7 +150,7 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
         "an edge's error returns a different number of residuals than it declares");
 
     return dual::summation(
-        dual::zip(residuals, edge->sigma()),
+        dual::zip(residuals, edge.sigma()),
         [](const auto &residual, const auto &sigma) { return kernel::radial(residual, sigma); });
   }
 
@@ -157,9 +158,15 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   /// at that node's block in the graph's index space.
   template <std::size_t I, std::size_t... Js>
   constexpr auto edge_inputs(std::index_sequence<Js...>) const {
-    using entry = edge_at<I>;
+    using entry = edge_entry_at<I>;
     return std::tuple{
         node_by_key<entry::keys[Js]>().template seed<layout::offset_of(entry::keys[Js])>()...};
+  }
+
+  /// @brief The edge declared @p I-th.
+  template <std::size_t I>
+  constexpr auto edge_at() const -> auto & {
+    return *std::get<I>(edges_).target;
   }
 
   /// @brief The node declared under @p Key.
