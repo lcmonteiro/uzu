@@ -165,7 +165,13 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   /// @brief The node declared under @p Key.
   template <std::size_t Key>
   constexpr auto node_by_key() const -> auto & {
-    return *std::get<layout::index_of(Key)>(nodes_).target;
+    return node_at<layout::index_of(Key)>();
+  }
+
+  /// @brief The node declared @p I-th.
+  template <std::size_t I>
+  constexpr auto node_at() const -> auto & {
+    return *std::get<I>(nodes_).target;
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -196,18 +202,20 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   /// rather than of the rule used to descend it. What reaches the algorithm is the sign of the
   /// derivative and a magnitude below one, whichever dimension it came from.
   ///
-  /// The braced list fixes the order the algorithm is called in: its elements are evaluated left
+  /// The kernel is pure, so the whole slope is normalised before the algorithm is called. The
+  /// braced list then fixes the order the algorithm is called in: its elements are evaluated left
   /// to right, so within a node, too, the algorithm sees its indices in order.
   template <std::size_t I, class Total, std::size_t... Ks>
   constexpr auto update_node(const Total &total, std::index_sequence<Ks...>) -> void {
     using entry = typename layout::template entry_at<I>;
     constexpr auto offset = layout::offset_of(entry::key);
 
-    auto &node = *std::get<I>(nodes_).target;
     const auto slope = dual::derivatives<offset, entry::width>(total);
 
-    node.update({algorithm_.template step<offset + Ks>(
-        kernel::signed_radial(slope[Ks], node.sigma()[Ks]))...});
+    auto &node = node_at<I>();
+    const auto normalized_slope = kernel::signed_radial(slope, node.sigma());
+
+    node.update({algorithm_.template step<offset + Ks>(normalized_slope[Ks])...});
   }
 
   algorithm_type algorithm_;
