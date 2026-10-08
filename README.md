@@ -328,8 +328,8 @@ applies to, rather than being fixed inside the fit. Two ship with the library:
 
 | Algorithm | Rule | Header |
 | --- | --- | --- |
-| `gradient{lr = ...}` | `-lr * g` | [graph_algorithm_gradient.hpp](include/uzu/optimization/graph_algorithm_gradient.hpp) |
-| `momentum{lr = ..., beta = ...}` | the heavy ball: one velocity per dual index, accelerated by the bounded gradient and bled by `beta` | [graph_algorithm_momentum.hpp](include/uzu/optimization/graph_algorithm_momentum.hpp) |
+| `gradient{lr = ...}` | `-lr * g` | [graph_algorithms/gradient.hpp](include/uzu/optimization/graph_algorithms/gradient.hpp) |
+| `momentum{lr = ..., beta = ...}` | the heavy ball: one velocity per dual index, accelerated by the bounded gradient and bled by `beta` | [graph_algorithms/momentum.hpp](include/uzu/optimization/graph_algorithms/momentum.hpp) |
 
 What the caller writes is a *builder*: it carries the hyper-parameters, and the
 graph asks it for an instance at the graph's own width. That is what lets the
