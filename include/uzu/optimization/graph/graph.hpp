@@ -216,13 +216,10 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   constexpr auto update_node(const Total &total, std::index_sequence<Ks...>) -> void {
     using entry = typename layout::template entry_at<I>;
     constexpr auto offset = layout::offset_of(entry::key);
-
-    const auto slope = dual::derivatives<offset, entry::width>(total);
-
     auto &node = node_at<I>();
-    const auto normalized_slope = kernel::signed_radial(slope, node.sigma());
-
-    node.update({algorithm_.template step<offset + Ks>(normalized_slope[Ks])...});
+    const auto slope = dual::derivatives<offset, entry::width>(total);
+    const auto slope_normalized = kernel::signed_radial(slope, node.sigma());
+    node.update({algorithm_.template step<offset + Ks>(slope_normalized[Ks])...});
   }
 
   algorithm_type algorithm_;
