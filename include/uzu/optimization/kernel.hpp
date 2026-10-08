@@ -4,8 +4,8 @@
 /// @brief The radial kernel, used both to robustify an edge's residual and to normalise a node's
 /// gradient.
 /// ===============================================================================================
-#ifndef UZU_OPTIMIZATION_GRAPH_KERNEL_HPP
-#define UZU_OPTIMIZATION_GRAPH_KERNEL_HPP
+#ifndef UZU_OPTIMIZATION_KERNEL_HPP
+#define UZU_OPTIMIZATION_KERNEL_HPP
 
 #include <cstddef>
 
@@ -106,4 +106,4 @@ constexpr auto signed_radial(const T &g, const T &s) {
 }  // namespace kernel
 }  // namespace uzu
 
-#endif  // UZU_OPTIMIZATION_GRAPH_KERNEL_HPP
+#endif  // UZU_OPTIMIZATION_KERNEL_HPP

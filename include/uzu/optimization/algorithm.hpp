@@ -12,10 +12,10 @@
 /// it is what makes a gradient comparable across dimensions of different scales - a property of
 /// the problem, not of the method used to descend it. An algorithm sees only what comes out of it.
 ///
-/// That is why the algorithm headers include nothing from `graph.hpp`, `graph_node.hpp`,
-/// `graph_edge.hpp` or `graph_kernel.hpp`, and why the graph names no algorithm, only the template
-/// parameter it was handed. The two share only `uzu/helpers/keywords.hpp`, which is neither
-/// one's -- and that is why the keywords sit above both rather than inside either.
+/// That is why the algorithm headers include nothing from `graph/` or `kernel.hpp` - and why they
+/// sit beside the graph rather than inside it - and why the graph names no algorithm, only the
+/// template parameter it was handed. The two share only `uzu/helpers/keywords.hpp`, which is
+/// neither one's -- and that is why the keywords sit above both rather than inside either.
 ///
 /// ## An algorithm builds a template instance
 ///
@@ -48,10 +48,10 @@
 /// The graph calls `step` once per index per pass, in index order, and holds the instance by
 /// value. `step` is non-const so that an instance may keep state between calls.
 /// ===============================================================================================
-#ifndef UZU_OPTIMIZATION_GRAPH_ALGORITHM_HPP
-#define UZU_OPTIMIZATION_GRAPH_ALGORITHM_HPP
+#ifndef UZU_OPTIMIZATION_ALGORITHM_HPP
+#define UZU_OPTIMIZATION_ALGORITHM_HPP
 
-#include "uzu/optimization/graph_algorithms/gradient.hpp"
-#include "uzu/optimization/graph_algorithms/momentum.hpp"
+#include "uzu/optimization/algorithm/gradient.hpp"
+#include "uzu/optimization/algorithm/momentum.hpp"
 
-#endif  // UZU_OPTIMIZATION_GRAPH_ALGORITHM_HPP
+#endif  // UZU_OPTIMIZATION_ALGORITHM_HPP
