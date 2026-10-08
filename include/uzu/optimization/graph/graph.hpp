@@ -70,6 +70,10 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   template <std::size_t I>
   using edge_entry_at = std::tuple_element_t<I, std::tuple<Es...>>;
 
+  /// @brief The @p J-th key that the edge declared @p I-th links.
+  template <std::size_t I, std::size_t J>
+  static constexpr std::size_t edge_key = edge_entry_at<I>::keys[J];
+
  public:
   using value_type = double;
 
@@ -158,9 +162,13 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   /// at that node's block in the graph's index space.
   template <std::size_t I, std::size_t... Js>
   constexpr auto edge_inputs(std::index_sequence<Js...>) const {
-    using entry = edge_entry_at<I>;
-    return std::tuple{
-        node_by_key<entry::keys[Js]>().template seed<layout::offset_of(entry::keys[Js])>()...};
+    return std::tuple{seeded_node<edge_key<I, Js>>()...};
+  }
+
+  /// @brief The estimate of the node under @p Key, seeded as duals at that node's own block.
+  template <std::size_t Key>
+  constexpr auto seeded_node() const {
+    return node_by_key<Key>().template seed<layout::offset_of(Key)>();
   }
 
   /// @brief The edge declared @p I-th.
