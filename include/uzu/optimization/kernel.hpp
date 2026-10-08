@@ -4,9 +4,10 @@
 /// @brief The radial kernel, used both to robustify an edge's residual and to normalise a node's
 /// gradient.
 /// ===============================================================================================
-#ifndef UZU_OPTIMIZATION_GRAPH_KERNEL_HPP
-#define UZU_OPTIMIZATION_GRAPH_KERNEL_HPP
+#ifndef UZU_OPTIMIZATION_KERNEL_HPP
+#define UZU_OPTIMIZATION_KERNEL_HPP
 
+#include <array>
 #include <cstddef>
 
 #include "uzu/foundation/dual/operations/minus.hpp"
@@ -103,7 +104,22 @@ constexpr auto signed_radial(const T &g, const T &s) {
   return g < T{0} ? -magnitude : magnitude;
 }
 
+/// @brief `signed_radial` applied component by component: a whole gradient, each component
+/// bounded against the sigma of its own dimension.
+///
+/// @param g The gradient, one component per dimension.
+/// @param s The sigmas, one per dimension.
+template <class T, std::size_t N>
+constexpr auto signed_radial(const std::array<T, N> &g, const std::array<T, N> &s)
+    -> std::array<T, N> {
+  std::array<T, N> out{};
+  for (std::size_t i = 0; i < N; ++i) {
+    out[i] = signed_radial(g[i], s[i]);
+  }
+  return out;
+}
+
 }  // namespace kernel
 }  // namespace uzu
 
-#endif  // UZU_OPTIMIZATION_GRAPH_KERNEL_HPP
+#endif  // UZU_OPTIMIZATION_KERNEL_HPP

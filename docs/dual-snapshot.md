@@ -24,6 +24,7 @@ every other module here sits:
 | `dual/helpers/print.hpp` | `include/uzu/foundation/dual/print.hpp` |
 | `dual/helpers/operations.hpp` | `include/uzu/foundation/dual/operations/base.hpp` |
 | `dual/types/` (local, not upstream) | `include/uzu/foundation/types/` |
+| `derivatives.hpp` (local, not upstream) | `include/uzu/foundation/dual/derivatives.hpp`: `dual::zero` and `dual::derivatives` |
 | `test_solver.hpp` (local, not upstream) | [`tests/helpers/reference_solver.hpp`](../tests/helpers/reference_solver.hpp) |
 | `test.cpp`, `test_array.cpp` | `tests/dual_test.cpp`, `tests/dual_array_test.cpp` |
 | the benches | `benchmarks/` |

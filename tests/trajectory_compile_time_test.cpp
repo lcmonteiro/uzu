@@ -13,7 +13,7 @@
 ///
 /// The reference is a zig-zag rather than the sine wave, because the sine needs `std::sin` and
 /// none of `<cmath>` can run in a constant expression before C++26. That is the same reason the
-/// kernel is built from squarings rather than from `exp` -- see `graph_kernel.hpp`.
+/// kernel is built from squarings rather than from `exp` -- see `kernel.hpp`.
 ///
 /// Size is what keeps this buildable. Four poses is eight dual indices and eleven passes of a
 /// thousand; the randomized test's twenty-four poses would be forty-eight indices carried through

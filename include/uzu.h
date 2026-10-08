@@ -12,7 +12,7 @@
 // The graph names no algorithm, only the template parameter it was handed, so it does not
 // include them -- and the algorithms include nothing of the graph. This umbrella is the one
 // place that knows about both.
-#include "uzu/optimization/graph.hpp"            // IWYU pragma: export
-#include "uzu/optimization/graph_algorithm.hpp"  // IWYU pragma: export
+#include "uzu/optimization/algorithm.hpp"  // IWYU pragma: export
+#include "uzu/optimization/graph.hpp"      // IWYU pragma: export
 
 #endif  // UZU_H

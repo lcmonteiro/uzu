@@ -3,11 +3,11 @@
 ///
 /// @brief Plain gradient descent.
 ///
-/// See `uzu/optimization/graph_algorithm.hpp` for what an algorithm has to supply and why it is two
+/// See `uzu/optimization/algorithm.hpp` for what an algorithm has to supply and why it is two
 /// types.
 /// ===============================================================================================
-#ifndef UZU_OPTIMIZATION_GRAPH_ALGORITHMS_GRADIENT_HPP
-#define UZU_OPTIMIZATION_GRAPH_ALGORITHMS_GRADIENT_HPP
+#ifndef UZU_OPTIMIZATION_ALGORITHM_GRADIENT_HPP
+#define UZU_OPTIMIZATION_ALGORITHM_GRADIENT_HPP
 
 #include <cstddef>
 
@@ -50,4 +50,4 @@ class gradient {
 
 }  // namespace uzu
 
-#endif  // UZU_OPTIMIZATION_GRAPH_ALGORITHMS_GRADIENT_HPP
+#endif  // UZU_OPTIMIZATION_ALGORITHM_GRADIENT_HPP

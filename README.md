@@ -50,8 +50,9 @@ evaluating the residual once.
 | --- | --- |
 | [include/uzu/foundation/dual/](include/uzu/foundation/dual/) | Dual-number types (`number`, `array`) and the math operations over them, for forward-mode automatic differentiation. |
 | [include/uzu/foundation/types/](include/uzu/foundation/types/) | Supporting problem types built on the duals (the Bézier curve the benchmarks fit). |
+| [include/uzu/foundation/meta/](include/uzu/foundation/meta/) | Generic compile-time machinery: the keyed index layout the graph lays its nodes out with. |
 | [include/uzu/helpers/](include/uzu/helpers/) | The keyword vocabulary — `init`, `sigma`, `lr`, `beta`, `iterations` — shared by the graph and the algorithms and owned by neither. |
-| [include/uzu/optimization/](include/uzu/optimization/) | The optimizer: the `node` and `edge` bases, the `graph` that lays them out and fits them, the radial kernel, and the algorithms. |
+| [include/uzu/optimization/](include/uzu/optimization/) | The optimizer: under `graph/`, the `node` and `edge` bases and the `graph` that fits them; beside it, the radial kernel and the algorithms. |
 | [tests/](tests/) | The compile-time suite. Every assertion is a `static_assert`, built against a scalar-generic 2D graph fixture. |
 | [examples/](examples/) | A square recovered from its sides, fitted by the compiler — see [below](#the-fit-runs-in-the-compiler). |
 | [benchmarks/](benchmarks/) | Compile-time and run-time probes over the width of the derivative set. |
@@ -328,14 +329,14 @@ applies to, rather than being fixed inside the fit. Two ship with the library:
 
 | Algorithm | Rule | Header |
 | --- | --- | --- |
-| `gradient{lr = ...}` | `-lr * g` | [graph_algorithms/gradient.hpp](include/uzu/optimization/graph_algorithms/gradient.hpp) |
-| `momentum{lr = ..., beta = ...}` | the heavy ball: one velocity per dual index, accelerated by the bounded gradient and bled by `beta` | [graph_algorithms/momentum.hpp](include/uzu/optimization/graph_algorithms/momentum.hpp) |
+| `gradient{lr = ...}` | `-lr * g` | [algorithm/gradient.hpp](include/uzu/optimization/algorithm/gradient.hpp) |
+| `momentum{lr = ..., beta = ...}` | the heavy ball: one velocity per dual index, accelerated by the bounded gradient and bled by `beta` | [algorithm/momentum.hpp](include/uzu/optimization/algorithm/momentum.hpp) |
 
 What the caller writes is a *builder*: it carries the hyper-parameters, and the
 graph asks it for an instance at the graph's own width. That is what lets the
 per-index state be an array rather than an allocation, and one builder be
 handed to two graphs without them treading on each other. See
-[graph_algorithm.hpp](include/uzu/optimization/graph_algorithm.hpp) for what
+[algorithm.hpp](include/uzu/optimization/algorithm.hpp) for what
 writing another one takes.
 
 The kernel is deliberately not the algorithm's: it reads a node's sigma, which
@@ -364,7 +365,9 @@ actually built.
 | [graph_layout_test.cpp](tests/graph_layout_test.cpp) | One block per declared node however many edges name it, holding the sum of what reaches it; an unlinked node laid out and left alone. |
 | [graph_descent_test.cpp](tests/graph_descent_test.cpp) | The error never rises across 200 passes, and an exact reflection symmetry survives the fit. |
 | [graph_algorithm_test.cpp](tests/graph_algorithm_test.cpp) | `beta = 0` is plain descent exactly; the velocity accumulates as written; a builder carries no state; momentum converges in fewer passes. |
-| [graph_contracts_test.cpp](tests/graph_contracts_test.cpp) | The key checks on their own: a repeated key and an edge over an undeclared key are both caught; empty node and edge lists pass. |
+| [graph_contracts_test.cpp](tests/graph_contracts_test.cpp) | The edge contract on its own: an edge over an undeclared key is caught, and an empty edge list passes. |
+| [keyed_layout_test.cpp](tests/keyed_layout_test.cpp) | The generic layout: lookups, offsets, width, and a repeated key caught, with no graph involved. |
+| [dual_derivatives_test.cpp](tests/dual_derivatives_test.cpp) | `dual::zero` widens a sum to every index; `dual::derivatives` reads a full range or a slice back out. |
 | [keywords_test.cpp](tests/keywords_test.cpp) | Sigma broadcasting, and keyword order independence. |
 | [trajectory_compile_time_test.cpp](tests/trajectory_compile_time_test.cpp) | A four-pose chain, started from one point, recovered exactly — by the compiler. |
 | [optimization_trajectory_test.cpp](tests/optimization_trajectory_test.cpp) | A noisy 12- and 24-pose trajectory with random initial guesses and loop closures, recovered to within vortex's own accuracy bound. The one test here that runs rather than compiles, and most of the suite's build time. |

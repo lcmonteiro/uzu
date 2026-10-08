@@ -3,11 +3,11 @@
 ///
 /// @brief Gradient descent with momentum.
 ///
-/// See `uzu/optimization/graph_algorithm.hpp` for what an algorithm has to supply and why it is two
+/// See `uzu/optimization/algorithm.hpp` for what an algorithm has to supply and why it is two
 /// types.
 /// ===============================================================================================
-#ifndef UZU_OPTIMIZATION_GRAPH_ALGORITHMS_MOMENTUM_HPP
-#define UZU_OPTIMIZATION_GRAPH_ALGORITHMS_MOMENTUM_HPP
+#ifndef UZU_OPTIMIZATION_ALGORITHM_MOMENTUM_HPP
+#define UZU_OPTIMIZATION_ALGORITHM_MOMENTUM_HPP
 
 #include <array>
 #include <cstddef>
@@ -87,4 +87,4 @@ class momentum {
 
 }  // namespace uzu
 
-#endif  // UZU_OPTIMIZATION_GRAPH_ALGORITHMS_MOMENTUM_HPP
+#endif  // UZU_OPTIMIZATION_ALGORITHM_MOMENTUM_HPP

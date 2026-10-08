@@ -16,17 +16,27 @@ include/
   uzu/helpers/
     keywords.hpp                        init, sigma, lr, beta, iterations
   uzu/optimization/
-    graph.hpp                           the layout and the fit
-    graph_contracts.hpp                 the compile-time checks on keys and links
-    graph_node.hpp                      the node base
-    graph_edge.hpp                      the edge base
-    graph_kernel.hpp                    the radial kernel
-    graph_algorithm.hpp                 what an algorithm has to supply
-    graph_algorithms/
+    graph.hpp                           everything under graph/, in one include
+    graph/
+      graph.hpp                         the error, the gradient and the fit
+      entries.hpp                       key(), link(), and the nodes and edges lists
+      contracts.hpp                     the compile-time check that edges resolve
+      node.hpp                          the node base
+      edge.hpp                          the edge base
+    kernel.hpp                          the radial kernel
+    algorithm.hpp                       what an algorithm has to supply
+    algorithm/
       gradient.hpp                      plain descent
       momentum.hpp                      the heavy ball
-  uzu/foundation/dual/                  the dual numbers
+  uzu/foundation/
+    meta/keyed_layout.hpp               keyed blocks laid end to end in one index space
+    dual/                               the dual numbers
 ```
+
+Each layer only reaches down. `foundation/` knows nothing of optimization: the
+keyed layout is a generic compile-time index layout, and the duals are generic
+automatic differentiation. `graph/` builds the problem out of them and the
+kernel. `algorithm/` stands to one side of all of it.
 
 The graph headers and the algorithm headers do not include each other. An
 algorithm is not the graph's - it never sees a node, an edge, or the kernel,
@@ -208,7 +218,7 @@ auto step(value_type gradient) -> value_type {
 
 `momentum` is the heavy ball: each index carries a velocity - one array slot,
 no allocation - that the bounded gradient accelerates and `beta` bleeds away.
-It lives in `uzu/optimization/graph_algorithms/momentum.hpp`, one header per algorithm, each
+It lives in `uzu/optimization/algorithm/momentum.hpp`, one header per algorithm, each
 of which compiles on its own.
 
 ```cpp
@@ -241,8 +251,11 @@ The two lists are named for what they hold, and the entries for what declaring
 one does: `nodes{key<1>(n1)}` keys a node, `edges{link<1, 2>(e1)}` links an
 edge over the keys it constrains. `node` and `edge` are also the bases the two
 derive from, so the lists read as the plurals of the things in them, and
-`link_entry` stays the name of what `link` produces - a record of one edge and
-the keys it was linked over.
+what `link` produces is an `edge_entry` - a record of one edge and the keys it
+was linked over - beside the `node_entry` that `key` produces. The functions
+are named for the act and the entries for what they hold; `link` cannot be
+`edge` for the same reason `key` cannot be `node`, so the two words stay apart
+on purpose.
 
 They are two lists rather than one because they are two kinds of thing. Every
 place the graph used to ask an entry which of the two it was is a place it now
@@ -346,6 +359,12 @@ declares is a compile error, and so are two nodes declared under the same key -
 the lookups take the first match, so a repeated key would otherwise be silent
 and wrong: both nodes would read one gradient and step identically, while the
 second one's block sat in the layout with nothing referring to it.
+
+The layout itself is `meta::keyed_layout`, in `uzu/foundation/meta/`. It takes
+any entries that carry a `key` and a `width`, and answers `index_of(key)`,
+`offset_of(key)`, `width` and `distinct_keys` as constant expressions. Nothing in
+it is about graphs; the graph is simply the one place that uses it, laying its
+node entries out with it and asserting `distinct_keys` in its own words.
 
 Both fire where the graph is declared, and report once. That is what separating
 the two lists buys: with every edge in hand at the class, an undeclared key can
