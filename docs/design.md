@@ -17,6 +17,7 @@ include/
     keywords.hpp                        init, sigma, lr, beta, iterations
   uzu/optimization/
     graph.hpp                           the layout and the fit
+    graph_contracts.hpp                 the compile-time checks on keys and links
     graph_node.hpp                      the node base
     graph_edge.hpp                      the edge base
     graph_kernel.hpp                    the radial kernel
