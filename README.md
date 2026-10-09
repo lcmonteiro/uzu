@@ -1,30 +1,32 @@
 # uzu
 
-uzu is a **header-only C++20 factor-graph optimizer whose whole fit can run in
-the compiler.** Declare the problem in a `constexpr` function, initialise a
-`constexpr` variable with it, and the compiler builds the graph, differentiates
-it and descends it while it compiles your program. What reaches the binary is
-the answer.
+**Factor-graph optimization at compile time.**
+
+uzu is a header-only C++20 factor-graph optimizer where the optimization can be
+done at compile time. Declare the problem in a `constexpr` function and the
+compiler builds the graph, computes every derivative and runs every iteration
+of the solver while it compiles your program. The optimization is finished
+before the program exists; the binary carries only the result.
 
 ```cpp
-constexpr auto fitted = solve();   // nodes, edges, 200 passes of descent: all at compile time
+constexpr auto fitted = solve();   // graph, derivatives, 200 iterations: all at compile time
 
-static_assert(fitted.error < 1e-6, "checked before the program exists");
+static_assert(fitted.error < 1e-6, "verified at compile time, before the program exists");
 ```
 
 The derivatives come from forward-mode dual numbers, so there is no Jacobian to
 write and no finite differences: an edge states its residual once, and the
 exact derivative with respect to every node dimension falls out of evaluating
-it. The same code runs at run time unchanged - compile time is something you
-ask for, not a separate API.
+it. The same code also runs at run time, unchanged - compile time is something
+you ask for with `constexpr`, not a separate API.
 
-> 💡 The optimizer runs in the compiler; the program only carries the result.
-> [See it done](#the-fit-runs-in-the-compiler), and
+> 💡 The optimization happens at compile time; the program only carries the
+> answer. [See it done](#optimization-at-compile-time), and
 > [the binary with no optimizer in it](#the-compiled-program-contains-no-optimizer).
 
 ---
 
-## The fit runs in the compiler
+## Optimization at compile time
 
 Four corners of a square, each measured only *relative* to the next one, plus
 one measurement saying where a single corner sits. No corner is told its own
@@ -141,9 +143,9 @@ The optimization is not fast in this program — it already happened.
 > whichever the compiler in use spells, so `cmake --build` is all that is
 > needed either way.
 
-### Writing a fit the compiler can run
+### Writing a compile-time optimization
 
-Any fit can be moved into the compiler; these are the rules it has to follow.
+Any fit can be moved to compile time; these are the rules it has to follow.
 
 1. **Put the whole problem in one `constexpr` function.** Declare the nodes,
    the edges and the graph as locals, fit, and return plain values - the
@@ -177,9 +179,9 @@ does.
 
 ## Highlights
 
-- **The fit runs in the compiler.** The library, the duals included, is
-  `constexpr` throughout, so a whole fit - graph, derivatives, every pass of
-  descent - can be a constant expression, its answer a compile-time constant,
+- **Optimization at compile time.** The library, the duals included, is
+  `constexpr` throughout, so a whole fit - graph, derivatives, every
+  iteration - can run at compile time, its answer a compile-time constant,
   and the optimizer [nowhere in the resulting binary](#the-compiled-program-contains-no-optimizer).
   The test suite takes the same idea literally: every assertion is a
   `static_assert`, so [the tests are the compilation](#testing).
@@ -274,7 +276,7 @@ If your own fits are to be evaluated at compile time, ask the compiler for the
 budget that needs — `-fconstexpr-ops-limit=100000000` on GCC,
 `-fconstexpr-steps=100000000` on Clang. `uzu::uzu` deliberately does not
 impose it: a consumer that only fits at run time does not need it. See
-[Writing a fit the compiler can run](#writing-a-fit-the-compiler-can-run).
+[Writing a compile-time optimization](#writing-a-compile-time-optimization).
 
 ---
 
@@ -440,7 +442,7 @@ sequence across standard libraries, so both compilers print the same numbers.
 | [include/uzu/helpers/](include/uzu/helpers/) | The keyword vocabulary — `init`, `sigma`, `lr`, `beta`, `iterations` — shared by the graph and the algorithms and owned by neither. |
 | [include/uzu/optimization/](include/uzu/optimization/) | The optimizer: under `graph/`, the `node` and `edge` bases and the `graph` that fits them; beside it, the radial kernel and the algorithms. |
 | [tests/](tests/) | The compile-time suite. Every assertion is a `static_assert`, built against a scalar-generic 2D graph fixture. |
-| [examples/](examples/) | A square recovered from its sides, fitted by the compiler — see [below](#the-fit-runs-in-the-compiler). |
+| [examples/](examples/) | A square recovered from its sides, fitted by the compiler — see [below](#optimization-at-compile-time). |
 | [benchmarks/](benchmarks/) | Compile-time and run-time probes over the width of the derivative set. |
 | [docs/](docs/) | [The optimizer in detail](docs/design.md), and the two documents on the vendored duals. |
 
