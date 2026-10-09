@@ -264,6 +264,29 @@ list, and neither skips over the other. The gain is not in line count - the
 header is longer than the single-list version it replaced - but in what can be
 checked, below.
 
+### Switching them off
+
+Which nodes and edges exist is settled at compile time; whether each one takes
+part is not. Both bases carry an `enabled()` flag with `enable()` and
+`disable()`, and since the graph holds its entries by pointer, flipping one is
+seen by the next `error()`, `gradient()` or `fit()`.
+
+- **A disabled edge is left out.** The total error skips it before evaluating
+  it, so the error and the gradient are exactly - to the bit - those of the same
+  graph declared without it. The total still starts from the zero over every
+  index, so its type, and every index a node reads its slope from, do not depend
+  on which edges are on.
+- **A disabled node is fixed.** It stays in the layout and edges still read its
+  estimate, as a constant, but the fit does not move it and does not call the
+  algorithm for its indices - so `momentum` keeps that node's velocity, rather
+  than decaying it, until the node is enabled again. Its derivative still shows
+  in `gradient()`, which describes the error rather than the step.
+
+A node cannot be *removed* this way: an edge names its nodes by key at compile
+time, and a missing one would be the compile error described under the index
+layout. Holding it fixed is the run-time version of that, and the usual one in
+factor graphs - an anchor, or a pose already settled.
+
 ### Named arguments
 
 `init = {1.0, 1.0}` is a real keyword argument, not a comment. `init` is an

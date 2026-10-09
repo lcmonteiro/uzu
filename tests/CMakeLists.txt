@@ -12,6 +12,7 @@ set(UZU_COMPILE_TIME_TESTS
   graph_descent_test.cpp
   graph_algorithm_test.cpp
   graph_contracts_test.cpp
+  graph_enable_test.cpp
   keyed_layout_test.cpp
   dual_derivatives_test.cpp
   keywords_test.cpp

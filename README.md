@@ -343,6 +343,25 @@ The kernel is deliberately not the algorithm's: it reads a node's sigma, which
 is the graph's data. An algorithm sees only the sign of the derivative and a
 magnitude below one.
 
+### Enabling and disabling nodes and edges
+
+The graph's shape is fixed at compile time, but any node or edge can be
+switched off at run time, and back on, between fits:
+
+```cpp
+loop_closure.disable();  // an edge: left out of error(), gradient() and fit()
+anchor.disable();        // a node: held where it is; edges still read it
+graph.fit(iterations = 100);
+
+anchor.enable();         // both switch back on
+loop_closure.enable();
+```
+
+A disabled edge is not evaluated at all, so the graph behaves exactly as if it
+had been declared without it. A disabled node is a fixed one: `fit` leaves its
+estimate alone and does not call the algorithm for its indices, while the edges
+around it keep reading it as a constant. Everything starts enabled.
+
 ---
 
 ## Testing
@@ -365,6 +384,7 @@ actually built.
 | [graph_layout_test.cpp](tests/graph_layout_test.cpp) | One block per declared node however many edges name it, holding the sum of what reaches it; an unlinked node laid out and left alone. |
 | [graph_descent_test.cpp](tests/graph_descent_test.cpp) | The error never rises across 200 passes, and an exact reflection symmetry survives the fit. |
 | [graph_algorithm_test.cpp](tests/graph_algorithm_test.cpp) | `beta = 0` is plain descent exactly; the velocity accumulates as written; a builder carries no state; momentum converges in fewer passes. |
+| [graph_enable_test.cpp](tests/graph_enable_test.cpp) | A disabled edge leaves the error and gradient exactly as if it were not declared; a disabled node is held while its neighbour moves; both switch back on. |
 | [graph_contracts_test.cpp](tests/graph_contracts_test.cpp) | The edge contract on its own: an edge over an undeclared key is caught, and an empty edge list passes. |
 | [keyed_layout_test.cpp](tests/keyed_layout_test.cpp) | The generic layout: lookups, offsets, width, and a repeated key caught, with no graph involved. |
 | [dual_derivatives_test.cpp](tests/dual_derivatives_test.cpp) | `dual::zero` widens a sum to every index; `dual::derivatives` reads a full range or a slice back out. |
