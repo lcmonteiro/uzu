@@ -243,12 +243,11 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
     using entry = typename layout::template entry_at<I>;
     constexpr auto offset = layout::offset_of(entry::key);
     auto &node = node_at<I>();
-    if (!node.enabled()) {
-      return;
+    if (node.enabled()) {
+      const auto slope = dual::derivatives<offset, entry::width>(total);
+      const auto slope_normalized = kernel::signed_radial(slope, node.sigma());
+      node.update({algorithm_.template step<offset + Ks>(slope_normalized[Ks])...});
     }
-    const auto slope = dual::derivatives<offset, entry::width>(total);
-    const auto slope_normalized = kernel::signed_radial(slope, node.sigma());
-    node.update({algorithm_.template step<offset + Ks>(slope_normalized[Ks])...});
   }
 
   algorithm_type algorithm_;
