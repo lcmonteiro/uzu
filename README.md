@@ -484,5 +484,8 @@ comments carry the measured numbers.
   `include/uzu/foundation/dual/`. See [docs/dual-snapshot.md](docs/dual-snapshot.md)
   for provenance and [docs/dual-storage.md](docs/dual-storage.md) for what has
   changed since.
-- **[g2o](https://github.com/RainerKuemmerle/g2o)** — the graph-optimization
-  shape this and [vortex](https://github.com/lcmonteiro/vortex) both follow.
+- **[vortex](https://github.com/lcmonteiro/vortex)** — the run-time,
+  Gauss-Newton end of the same idea, and the graph-optimization shape this
+  library follows. uzu shares its ancestry and repository layout, and
+  [optimization_trajectory_test.cpp](tests/optimization_trajectory_test.cpp)
+  measures uzu against vortex's own trajectory problem.
