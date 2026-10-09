@@ -1,208 +1,36 @@
+<p align="center">
+  <img src="docs/images/uzu.svg" alt="uzu: a factor graph winding into a whirlpool, solved at its eye" width="160">
+</p>
+
 # uzu
 
-uzu is a **header-only C++20 factor-graph optimizer** that gets its derivatives
-from forward-mode dual numbers rather than from a hand-written Jacobian.
+**Factor-graph optimization at compile time.**
 
-Nodes hold estimates, edges score constraints, and the fit walks the whole
-graph downhill. There is no Jacobian to write and no finite differences: the
-derivative of every residual with respect to every node dimension falls out of
-evaluating the residual once.
-
-> 💡 Write the residual once. uzu gives you the exact derivative automatically —
-> and will evaluate the whole fit at compile time if you ask it to.
-
----
-
-## Highlights
-
-- **Write the residual once.** A derived edge implements a single templated
-  `error(...)`. Evaluated with `double` it is the residual; evaluated with a
-  dual number it carries its own exact partial derivatives.
-- **Statically typed graph.** Node and edge types, their dimensions, and their
-  connectivity are all part of the type system, resolved at compile time. A
-  node's identity is a `key<N>`, so nothing is looked up at run time.
-- **Allocation-free.** Every layout is a compile-time function of the node
-  list, so the state is arrays and nothing is heap-allocated — which is also
-  what lets a whole fit run inside a constant expression.
-- **Usable in a constant expression.** The library, the duals included, is
-  `constexpr` throughout — so a whole fit can run *in the compiler*, and its
-  answer be a compile-time constant. [See it done](#the-fit-runs-in-the-compiler),
-  and the optimizer nowhere in the resulting binary. The test suite takes the
-  same idea literally: every assertion is a `static_assert`, so
-  [the tests are the compilation](#testing).
-- **A redescending kernel.** Residuals go through `1 - (1 - z/N)^N`, Tukey's
-  biweight generalised: past `sqrt(2N) * sigma` an outlier contributes nothing
-  at all, and no derivative either. Built from squarings, so it needs nothing
-  from `<cmath>`.
-- **Keyword arguments.** `init`, `sigma`, `lr`, `beta` and `iterations` are
-  named, so a node or an edge is built from what its values mean rather than
-  from the order they are written in. A node takes `init` and `sigma`; an edge
-  takes the same two, where `init` is the measurement.
-- **No dependencies.** The standard library, and nothing else.
-
----
-
-## Architecture
-
-### Source layout
-
-| Path | Responsibility |
-| --- | --- |
-| [include/uzu/foundation/dual/](include/uzu/foundation/dual/) | Dual-number types (`number`, `array`) and the math operations over them, for forward-mode automatic differentiation. |
-| [include/uzu/foundation/types/](include/uzu/foundation/types/) | Supporting problem types built on the duals (the Bézier curve the benchmarks fit). |
-| [include/uzu/foundation/meta/](include/uzu/foundation/meta/) | Generic compile-time machinery: the keyed index layout the graph lays its nodes out with. |
-| [include/uzu/helpers/](include/uzu/helpers/) | The keyword vocabulary — `init`, `sigma`, `lr`, `beta`, `iterations` — shared by the graph and the algorithms and owned by neither. |
-| [include/uzu/optimization/](include/uzu/optimization/) | The optimizer: under `graph/`, the `node` and `edge` bases and the `graph` that fits them; beside it, the radial kernel and the algorithms. |
-| [tests/](tests/) | The compile-time suite. Every assertion is a `static_assert`, built against a scalar-generic 2D graph fixture. |
-| [examples/](examples/) | A square recovered from its sides, fitted by the compiler — see [below](#the-fit-runs-in-the-compiler). |
-| [benchmarks/](benchmarks/) | Compile-time and run-time probes over the width of the derivative set. |
-| [docs/](docs/) | [The optimizer in detail](docs/design.md), and the two documents on the vendored duals. |
-
-> `include/uzu/foundation/` groups the core modeling modules (`dual`, `types`);
-> `uzu/optimization/` is the layer that uses them.
-
-`dual::` stays `dual::` and `uzu::` is the optimizer, so a program using both
-says which half it is reaching for.
-
----
-
-## How automatic differentiation works
-
-Each derived edge implements **one** scalar-generic residual function:
+uzu is a header-only C++20 factor-graph optimizer where the optimization can be
+done at compile time. Declare the problem in a `constexpr` function and the
+compiler builds the graph, computes every derivative and runs every iteration
+of the solver while it compiles your program. The optimization is finished
+before the program exists; the binary carries only the result.
 
 ```cpp
-struct between : uzu::edge<between, std::array<double, 2>, 2> {
-  using base = uzu::edge<between, std::array<double, 2>, 2>;
-  using base::base;
+constexpr auto fitted = solve();   // graph, derivatives, 200 iterations: all at compile time
 
-  template <class A, class B>
-  constexpr auto error(const A &a, const B &b) const {
-    return (b - a) - measurement();
-  }
-};
+static_assert(fitted.error < 1e-6, "verified at compile time, before the program exists");
 ```
 
-- Evaluated with plain `double` → the **residual**, which is what the error is
-  summed from.
-- Evaluated with `dual::number` → the residual carries its **exact partial
-  derivatives**. The graph seeds one dual index per node dimension, and reads
-  each derivative straight back out of the result.
+The derivatives come from forward-mode dual numbers, so there is no Jacobian to
+write and no finite differences: an edge states its residual once, and the
+exact derivative with respect to every node dimension falls out of evaluating
+it. The same code also runs at run time, unchanged - compile time is something
+you ask for with `constexpr`, not a separate API.
 
-`plus` on a node and `error` on an edge are the whole of what a user writes.
-Neither knows the graph exists, and `plus` is the only place that changes for
-an estimate living on a manifold rather than in a vector space.
+> 💡 The optimization happens at compile time; the program only carries the
+> answer. [See it done](#optimization-at-compile-time), and
+> [the binary with no optimizer in it](#the-compiled-program-contains-no-optimizer).
 
 ---
 
-## Getting started
-
-### Prerequisites
-
-- A **C++20** compiler (CI builds with GCC and Clang).
-- **CMake ≥ 3.24**.
-
-Nothing is fetched, and there is nothing to link against.
-
-### Build & test
-
-```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j
-ctest --test-dir build --output-on-failure
-```
-
-Or in one step, prerequisites included: `./setup.sh`.
-
-To use the headers without building the tests:
-
-```bash
-cmake -S . -B build -DUZU_BUILD_TESTS=OFF
-```
-
-### Use it in your project
-
-The library exports the target `uzu::uzu`:
-
-```cmake
-add_subdirectory(uzu)          # or FetchContent
-target_link_libraries(my_app PRIVATE uzu::uzu)
-```
-
-```cpp
-#include "uzu.h"   // the node and edge bases, the graph, the algorithms
-```
-
-If your own fits are to be evaluated at compile time, ask the compiler for the
-budget that needs — `-fconstexpr-ops-limit=100000000` on GCC,
-`-fconstexpr-steps=100000000` on Clang. `uzu::uzu` deliberately does not
-impose it: a consumer that only fits at run time does not need it. See
-`uzu_constexpr_budget()` in [CMakeLists.txt](CMakeLists.txt) for the
-per-compiler flag the tests use.
-
----
-
-## Minimal example
-
-Two points and a relative constraint between them. The fixture the tests are
-built from is the same shape, and is the fuller version of this:
-[tests/fixtures/simple_graph.hpp](tests/fixtures/simple_graph.hpp).
-
-```cpp
-#include <array>
-
-#include "uzu.h"
-
-struct point : uzu::node<point, std::array<double, 2>, 2> {
-  using base = uzu::node<point, std::array<double, 2>, 2>;
-  using base::base;
-
-  template <class Delta>
-  constexpr auto plus(const Delta &delta) const -> estimation_type {
-    return {estimation()[0] + delta[0], estimation()[1] + delta[1]};
-  }
-};
-
-struct between : uzu::edge<between, std::array<double, 2>, 2> {
-  using base = uzu::edge<between, std::array<double, 2>, 2>;
-  using base::base;
-
-  template <class A, class B>
-  constexpr auto error(const A &a, const B &b) const {
-    return (b - a) - measurement();
-  }
-};
-
-using uzu::edges, uzu::gradient, uzu::init, uzu::iterations;
-using uzu::key, uzu::link, uzu::lr, uzu::nodes, uzu::sigma;
-
-auto a = point(init = {0.0, 0.0}, sigma = {0.4, 0.4});
-auto b = point(init = {3.0, 1.0}, sigma = {0.4, 0.4});
-auto e = between(init = {2.0, 1.0}, sigma = {2.0, 2.0});   // b - a was measured at (2, 1)
-
-auto g = uzu::graph{
-    gradient{lr = 0.05},
-    nodes{key<1>(a), key<2>(b)},
-    edges{link<1, 2>(e)}};
-
-g.fit(iterations = 200);            // b - a is drawn towards (2, 1)
-```
-
-### Defining your own problem
-
-1. **Node** — subclass `uzu::node<Derived, Estimation, Dimension>` and
-   implement a scalar-generic `plus(delta)` manifold retraction. Build it with
-   `init` (the starting estimate) and `sigma`.
-2. **Edge** — subclass `uzu::edge<Derived, Measurement, Dimension>` and
-   implement a scalar-generic `error(...)`. Build it with `init` (the
-   measurement) and `sigma`, or set the measurement later with
-   `measurement(...)` when it arrives from somewhere else.
-3. **Graph** — `uzu::graph{algorithm, nodes{key<N>(...)...}, edges{link<N...>(...)...}}`,
-   in that order: how to step, what to estimate, what constrains it.
-4. Set estimations & measurements, call `fit(iterations = ...)`.
-
----
-
-## The fit runs in the compiler
+## Optimization at compile time
 
 Four corners of a square, each measured only *relative* to the next one, plus
 one measurement saying where a single corner sits. No corner is told its own
@@ -319,6 +147,211 @@ The optimization is not fast in this program — it already happened.
 > whichever the compiler in use spells, so `cmake --build` is all that is
 > needed either way.
 
+### Writing a compile-time optimization
+
+Any fit can be moved to compile time; these are the rules it has to follow.
+
+1. **Put the whole problem in one `constexpr` function.** Declare the nodes,
+   the edges and the graph as locals, fit, and return plain values - the
+   estimates, the error. The graph points at its nodes and edges, so it cannot
+   outlive them, and a `constexpr` variable can only hold the values that come
+   out.
+2. **Make `plus` and `error` `constexpr`,** and keep them to `+`, `-`, `*`, `/`
+   and negation. Those are constant expressions on every compiler. `sqrt`,
+   `sin`, `cos`, `exp`, `log` and `pow` go through `<cmath>`, which is not
+   `constexpr` before C++26: GCC accepts them anyway as an extension, Clang
+   refuses. The kernel is built from squarings for exactly this reason.
+3. **No heap, no I/O, no randomness.** uzu needs none of them - every layout is
+   an array sized at compile time - but the problem's data has to be fixed in
+   the source, too.
+4. **Give the compiler the budget.** Constant evaluation is capped by a step
+   count, and a fit's cost grows roughly with passes × edges × width. The
+   square above fits GCC's default; Clang's default is about a million steps
+   and wants `-fconstexpr-steps=10000000`. The tests ask for `10^8`, and
+   `uzu_constexpr_budget()` in [CMakeLists.txt](CMakeLists.txt) spells it for
+   each compiler. Running past it is a compile error that says so.
+5. **Check the answer with `static_assert`.** A wrong answer is then a build
+   that does not finish, at the line that states the property.
+
+Everything else carries over: both algorithms and
+[switching nodes and edges off](#enabling-and-disabling-nodes-and-edges) work
+inside a constant expression - the tests exercise each of them there. Drop
+`constexpr` from the variable and the same function runs when the program
+does.
+
+---
+
+## Highlights
+
+- **Optimization at compile time.** The library, the duals included, is
+  `constexpr` throughout, so a whole fit - graph, derivatives, every
+  iteration - can run at compile time, its answer a compile-time constant,
+  and the optimizer [nowhere in the resulting binary](#the-compiled-program-contains-no-optimizer).
+  The test suite takes the same idea literally: every assertion is a
+  `static_assert`, so [the tests are the compilation](#testing).
+- **Write the residual once.** A derived edge implements a single templated
+  `error(...)`. Evaluated with `double` it is the residual; evaluated with a
+  dual number it carries its own exact partial derivatives.
+- **Statically typed graph.** Node and edge types, their dimensions, and their
+  connectivity are all part of the type system, resolved at compile time. A
+  node's identity is a `key<N>`, so nothing is looked up at run time.
+- **Allocation-free.** Every layout is a compile-time function of the node
+  list, so the state is arrays and nothing is heap-allocated — the condition
+  for a fit to run inside a constant expression at all.
+- **A redescending kernel.** Residuals go through `1 - (1 - z/N)^N`, Tukey's
+  biweight generalised: past `sqrt(2N) * sigma` an outlier contributes nothing
+  at all, and no derivative either. Built from squarings, so it needs nothing
+  from `<cmath>` and stays a constant expression on every compiler.
+- **Keyword arguments.** `init`, `sigma`, `lr`, `beta` and `iterations` are
+  named, so a node or an edge is built from what its values mean rather than
+  from the order they are written in. A node takes `init` and `sigma`; an edge
+  takes the same two, where `init` is the measurement.
+- **No dependencies.** The standard library, and nothing else.
+
+---
+
+## How automatic differentiation works
+
+Each derived edge implements **one** scalar-generic residual function:
+
+```cpp
+struct between : uzu::edge<between, std::array<double, 2>, 2> {
+  using base = uzu::edge<between, std::array<double, 2>, 2>;
+  using base::base;
+
+  template <class A, class B>
+  constexpr auto error(const A &a, const B &b) const {
+    return (b - a) - measurement();
+  }
+};
+```
+
+- Evaluated with plain `double` → the **residual**, which is what the error is
+  summed from.
+- Evaluated with `dual::number` → the residual carries its **exact partial
+  derivatives**. The graph seeds one dual index per node dimension, and reads
+  each derivative straight back out of the result.
+
+`plus` on a node and `error` on an edge are the whole of what a user writes.
+Neither knows the graph exists, and `plus` is the only place that changes for
+an estimate living on a manifold rather than in a vector space.
+
+---
+
+## Getting started
+
+### Prerequisites
+
+- A **C++20** compiler (CI builds with GCC and Clang).
+- **CMake ≥ 3.24**.
+
+Nothing is fetched, and there is nothing to link against.
+
+### Build & test
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j
+ctest --test-dir build --output-on-failure
+```
+
+Or in one step, prerequisites included: `./setup.sh`.
+
+To use the headers without building the tests:
+
+```bash
+cmake -S . -B build -DUZU_BUILD_TESTS=OFF
+```
+
+### Use it in your project
+
+The library exports the target `uzu::uzu`:
+
+```cmake
+add_subdirectory(uzu)          # or FetchContent
+target_link_libraries(my_app PRIVATE uzu::uzu)
+```
+
+```cpp
+#include "uzu.h"   // the node and edge bases, the graph, the algorithms
+```
+
+If your own fits are to be evaluated at compile time, ask the compiler for the
+budget that needs — `-fconstexpr-ops-limit=100000000` on GCC,
+`-fconstexpr-steps=100000000` on Clang. `uzu::uzu` deliberately does not
+impose it: a consumer that only fits at run time does not need it. See
+[Writing a compile-time optimization](#writing-a-compile-time-optimization).
+
+---
+
+## Minimal example
+
+Two points and a relative constraint between them, fitted by the compiler. The
+fixture the tests are built from is the same shape, and is the fuller version
+of this: [tests/fixtures/simple_graph.hpp](tests/fixtures/simple_graph.hpp).
+
+```cpp
+#include <array>
+
+#include "uzu.h"
+
+struct point : uzu::node<point, std::array<double, 2>, 2> {
+  using base = uzu::node<point, std::array<double, 2>, 2>;
+  using base::base;
+
+  template <class Delta>
+  constexpr auto plus(const Delta &delta) const -> estimation_type {
+    return {estimation()[0] + delta[0], estimation()[1] + delta[1]};
+  }
+};
+
+struct between : uzu::edge<between, std::array<double, 2>, 2> {
+  using base = uzu::edge<between, std::array<double, 2>, 2>;
+  using base::base;
+
+  template <class A, class B>
+  constexpr auto error(const A &a, const B &b) const {
+    return (b - a) - measurement();
+  }
+};
+
+using uzu::beta, uzu::edges, uzu::init, uzu::iterations, uzu::momentum;
+using uzu::key, uzu::link, uzu::lr, uzu::nodes, uzu::sigma;
+
+constexpr auto solve() -> std::array<double, 2> {
+  auto a = point(init = {0.0, 0.0}, sigma = {0.4, 0.4});
+  auto b = point(init = {3.0, 1.0}, sigma = {0.4, 0.4});
+  auto e = between(init = {2.0, 1.0}, sigma = {2.0, 2.0});   // b - a was measured at (2, 1)
+
+  auto g = uzu::graph{
+      momentum{lr = 0.05, beta = 0.9},
+      nodes{key<1>(a), key<2>(b)},
+      edges{link<1, 2>(e)}};
+
+  g.fit(iterations = 200);
+  return {b.estimation()[0] - a.estimation()[0], b.estimation()[1] - a.estimation()[1]};
+}
+
+constexpr auto offset = solve();   // the fit, run by the compiler: (1.978, 1.000)
+
+constexpr auto near(double x, double y) { return (x - y) * (x - y) < 0.05 * 0.05; }
+static_assert(near(offset[0], 2.0) && near(offset[1], 1.0), "b - a was drawn to (2, 1)");
+```
+
+### Defining your own problem
+
+1. **Node** — subclass `uzu::node<Derived, Estimation, Dimension>` and
+   implement a scalar-generic `plus(delta)` manifold retraction. Build it with
+   `init` (the starting estimate) and `sigma`.
+2. **Edge** — subclass `uzu::edge<Derived, Measurement, Dimension>` and
+   implement a scalar-generic `error(...)`. Build it with `init` (the
+   measurement) and `sigma`, or set the measurement later with
+   `measurement(...)` when it arrives from somewhere else.
+3. **Graph** — `uzu::graph{algorithm, nodes{key<N>(...)...}, edges{link<N...>(...)...}}`,
+   in that order: how to step, what to estimate, what constrains it.
+4. Set estimations & measurements, call `fit(iterations = ...)` - inside a
+   `constexpr` function to have the compiler run it, or anywhere to run it
+   with the program.
 
 ---
 
@@ -401,6 +434,30 @@ sequence across standard libraries, so both compilers print the same numbers.
 
 ---
 
+## Architecture
+
+### Source layout
+
+| Path | Responsibility |
+| --- | --- |
+| [include/uzu/foundation/dual/](include/uzu/foundation/dual/) | Dual-number types (`number`, `array`) and the math operations over them, for forward-mode automatic differentiation. |
+| [include/uzu/foundation/types/](include/uzu/foundation/types/) | Supporting problem types built on the duals (the Bézier curve the benchmarks fit). |
+| [include/uzu/foundation/meta/](include/uzu/foundation/meta/) | Generic compile-time machinery: the keyed index layout the graph lays its nodes out with. |
+| [include/uzu/helpers/](include/uzu/helpers/) | The keyword vocabulary — `init`, `sigma`, `lr`, `beta`, `iterations` — shared by the graph and the algorithms and owned by neither. |
+| [include/uzu/optimization/](include/uzu/optimization/) | The optimizer: under `graph/`, the `node` and `edge` bases and the `graph` that fits them; beside it, the radial kernel and the algorithms. |
+| [tests/](tests/) | The compile-time suite. Every assertion is a `static_assert`, built against a scalar-generic 2D graph fixture. |
+| [examples/](examples/) | A square recovered from its sides, fitted by the compiler — see [below](#optimization-at-compile-time). |
+| [benchmarks/](benchmarks/) | Compile-time and run-time probes over the width of the derivative set. |
+| [docs/](docs/) | [The optimizer in detail](docs/design.md), and the two documents on the vendored duals. |
+
+> `include/uzu/foundation/` groups the core modeling modules (`dual`, `types`);
+> `uzu/optimization/` is the layer that uses them.
+
+`dual::` stays `dual::` and `uzu::` is the optimizer, so a program using both
+says which half it is reaching for.
+
+---
+
 ## What it is not
 
 Gradient descent with a bounded step, not Gauss-Newton or Levenberg-Marquardt.
@@ -431,5 +488,8 @@ comments carry the measured numbers.
   `include/uzu/foundation/dual/`. See [docs/dual-snapshot.md](docs/dual-snapshot.md)
   for provenance and [docs/dual-storage.md](docs/dual-storage.md) for what has
   changed since.
-- **[g2o](https://github.com/RainerKuemmerle/g2o)** — the graph-optimization
-  shape this and [vortex](https://github.com/lcmonteiro/vortex) both follow.
+- **[vortex](https://github.com/lcmonteiro/vortex)** — the run-time,
+  Gauss-Newton end of the same idea, and the graph-optimization shape this
+  library follows. uzu shares its ancestry and repository layout, and
+  [optimization_trajectory_test.cpp](tests/optimization_trajectory_test.cpp)
+  measures uzu against vortex's own trajectory problem.
