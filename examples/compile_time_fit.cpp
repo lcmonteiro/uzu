@@ -17,15 +17,15 @@
 /// well as place them. The answer is a 2x2 square with its lower-left corner at (1, 1) -- which
 /// is worth checking by eye, because the point of this file is not the answer.
 ///
-/// The point is the one line that matters:
+/// The point is the one line that matters, at the top of `main`:
 ///
-///     constexpr auto fitted = solve();
+///     static constexpr auto fitted = solve();
 ///
 /// `constexpr` there is not decoration. It says the initializer must be a *constant expression*,
 /// so the compiler has to run the whole fit -- build the graph, seed the dual numbers, evaluate
 /// two hundred passes of gradient descent with momentum -- and fail to compile if it cannot. The
-/// `static_assert`s below then check the answer with the program still being compiled. Reaching
-/// `main` at all means every one of them held.
+/// `static_assert`s that follow it then check the answer with the program still being compiled.
+/// The program exists at all only because every one of them held.
 ///
 /// The compiled program contains no optimizer. It has four pairs of doubles.
 /// ===============================================================================================
@@ -33,6 +33,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdio>
+#include <type_traits>
 
 #include "uzu.h"
 
@@ -137,48 +138,44 @@ constexpr auto solve() -> square {
   return {{c0.estimation(), c1.estimation(), c2.estimation(), c3.estimation()}, graph.error()};
 }
 
-/// @brief The fit, run by the compiler.
-///
-/// If `solve()` could not be constant-evaluated -- if anything on its path reached for `<cmath>`,
-/// allocated, or ran past the compiler's evaluation budget -- this line would not compile. It
-/// does, so by the time the program starts, the square is already solved.
-constexpr auto fitted = solve();
-
-/// @brief `std::fabs` cannot run in a constant expression, and this is all of it that is needed.
-constexpr auto close(double a, double b) -> bool {
-  const auto apart = a - b < 0.0 ? b - a : a - b;
-  return apart < 0.01;
-}
-
-/// @brief Whether corner @p I landed at (@p x, @p y).
-template <std::size_t I>
-constexpr auto at_corner(double x, double y) -> bool {
-  return close(fitted.corners[I][0], x) && close(fitted.corners[I][1], y);
-}
-
-// ---------------------------------------------------------------------------------------------
-// The checks, made while the program is still being compiled. A failure here is a compile error
-// naming the property, at the line that states it -- there is no run in which it could pass.
-// ---------------------------------------------------------------------------------------------
-static_assert(at_corner<0>(1.0, 1.0), "the anchored corner sits where it was measured");
-static_assert(at_corner<1>(3.0, 1.0), "two units along x from it");
-static_assert(at_corner<2>(3.0, 3.0), "and two up, so the sides are square");
-static_assert(at_corner<3>(1.0, 3.0), "and the fourth closes the loop");
-static_assert(fitted.error < 1e-6, "the four sides and the anchor are all satisfied at once");
-
-/// @brief The answer is a constant expression, so it can go where only a constant can.
-///
-/// A `static_assert` already proves that, but this states it in the form nobody can argue with: a
-/// template argument. The side length is the distance between two corners the *optimizer* placed,
-/// rounded, and the type system accepts it as a number known at compile time.
-using side_length = std::integral_constant<
-    int, static_cast<int>(fitted.corners[1][0] - fitted.corners[0][0] + 0.5)>;
-
-static_assert(side_length::value == 2, "the square the fit found is two units on a side");
-
 }  // namespace
 
 auto main() -> int {
+  // The fit, run by the compiler. `constexpr` here says the initializer must be a constant
+  // expression: if `solve()` could not be constant-evaluated -- if anything on its path reached
+  // for `<cmath>`, allocated, or ran past the compiler's evaluation budget -- this line would not
+  // compile. It does, so by the time `main` starts, the square is already solved.
+  static constexpr auto fitted = solve();
+
+  // `std::fabs` cannot run in a constant expression, and this is all of it that is needed.
+  constexpr auto close = [](double a, double b) {
+    const auto apart = a - b < 0.0 ? b - a : a - b;
+    return apart < 0.01;
+  };
+
+  // Whether a corner landed at (x, y).
+  constexpr auto at = [close](const auto &corner, double x, double y) {
+    return close(corner[0], x) && close(corner[1], y);
+  };
+
+  // The checks, made while the program is still being compiled. A failure here is a compile
+  // error naming the property, at the line that states it -- there is no run in which it could
+  // pass.
+  static_assert(at(fitted.corners[0], 1.0, 1.0), "the anchored corner sits where it was measured");
+  static_assert(at(fitted.corners[1], 3.0, 1.0), "two units along x from it");
+  static_assert(at(fitted.corners[2], 3.0, 3.0), "and two up, so the sides are square");
+  static_assert(at(fitted.corners[3], 1.0, 3.0), "and the fourth closes the loop");
+  static_assert(fitted.error < 1e-6, "the four sides and the anchor are all satisfied at once");
+
+  // The answer is a constant expression, so it can go where only a constant can. A
+  // `static_assert` already proves that, but this states it in the form nobody can argue with: a
+  // template argument. The side length is the distance between two corners the *optimizer*
+  // placed, rounded, and the type system accepts it as a number known at compile time.
+  using side_length = std::
+      integral_constant<int, static_cast<int>(fitted.corners[1][0] - fitted.corners[0][0] + 0.5)>;
+
+  static_assert(side_length::value == 2, "the square the fit found is two units on a side");
+
   std::printf(
       "a %d x %d square, solved before this program started running:\n\n",
       side_length::value,

@@ -80,22 +80,28 @@ constexpr auto solve() -> square {
           graph.error()};
 }
 
-// The line that matters. `constexpr` is not decoration here: it says the
-// initializer must be a constant expression, so the compiler has to run the
-// whole fit — build the graph, seed the duals, take two hundred passes of
-// gradient descent with momentum — and fail to compile if it cannot.
-constexpr auto fitted = solve();
+auto main() -> int {
+  // The line that matters. `constexpr` is not decoration here: it says the
+  // initializer must be a constant expression, so the compiler has to run the
+  // whole fit — build the graph, seed the duals, take two hundred passes of
+  // gradient descent with momentum — and fail to compile if it cannot.
+  // `static` keeps the answer in read-only data rather than copying it onto
+  // the stack each time main runs.
+  static constexpr auto fitted = solve();
+  /* the checks below, then print the corners */
+}
 ```
 
 Which means the answer can be checked while the program is still being
 compiled. A failure here is not a red test, it is a build that does not finish:
 
 ```cpp
-static_assert(at_corner<0>(1.0, 1.0), "the anchored corner sits where it was measured");
-static_assert(at_corner<1>(3.0, 1.0), "two units along x from it");
-static_assert(at_corner<2>(3.0, 3.0), "and two up, so the sides are square");
-static_assert(at_corner<3>(1.0, 3.0), "and the fourth closes the loop");
-static_assert(fitted.error < 1e-6,    "all five measurements are satisfied at once");
+// Inside main, straight after the fit.
+static_assert(at(fitted.corners[0], 1.0, 1.0), "the anchored corner sits where it was measured");
+static_assert(at(fitted.corners[1], 3.0, 1.0), "two units along x from it");
+static_assert(at(fitted.corners[2], 3.0, 3.0), "and two up, so the sides are square");
+static_assert(at(fitted.corners[3], 1.0, 3.0), "and the fourth closes the loop");
+static_assert(fitted.error < 1e-6, "all five measurements are satisfied at once");
 
 // And because it is a constant, it can go where only a constant can.
 using side_length = std::integral_constant<int, /* corner 1 minus corner 0 */>;
