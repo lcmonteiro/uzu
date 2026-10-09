@@ -80,66 +80,67 @@ constexpr auto solve() -> square {
           graph.error()};
 }
 
-// The line that matters. `constexpr` is not decoration here: it says the
-// initializer must be a constant expression, so the compiler has to run the
-// whole fit — build the graph, seed the duals, take two hundred passes of
-// gradient descent with momentum — and fail to compile if it cannot.
-constexpr auto fitted = solve();
+auto main() -> int {
+  // The line that matters. `constexpr` is not decoration here: it says the
+  // initializer must be a constant expression, so the compiler has to run the
+  // whole fit — build the graph, seed the duals, take two hundred passes of
+  // gradient descent with momentum — and fail to compile if it cannot.
+  constexpr auto fitted = solve();
+  /* the checks below */
+  return 0;
+}
 ```
 
 Which means the answer can be checked while the program is still being
 compiled. A failure here is not a red test, it is a build that does not finish:
 
 ```cpp
-static_assert(at_corner<0>(1.0, 1.0), "the anchored corner sits where it was measured");
-static_assert(at_corner<1>(3.0, 1.0), "two units along x from it");
-static_assert(at_corner<2>(3.0, 3.0), "and two up, so the sides are square");
-static_assert(at_corner<3>(1.0, 3.0), "and the fourth closes the loop");
-static_assert(fitted.error < 1e-6,    "all five measurements are satisfied at once");
+// Inside main, straight after the fit.
+static_assert(at(fitted.corners[0], 1.0, 1.0), "the anchored corner sits where it was measured");
+static_assert(at(fitted.corners[1], 3.0, 1.0), "two units along x from it");
+static_assert(at(fitted.corners[2], 3.0, 3.0), "and two up, so the sides are square");
+static_assert(at(fitted.corners[3], 1.0, 3.0), "and the fourth closes the loop");
+static_assert(fitted.error < 1e-6, "all five measurements are satisfied at once");
 
 // And because it is a constant, it can go where only a constant can.
 using side_length = std::integral_constant<int, /* corner 1 minus corner 0 */>;
 static_assert(side_length::value == 2, "the square the fit found is two units on a side");
 ```
 
+Building the example *is* running it. If the build finishes, every check held
+and the square was solved, to corners at (1.0014, 1.0014), (3.0019, 1.0020),
+(3.0021, 3.0021) and (1.0020, 3.0019), with an error of 1.64e-07. The program
+that comes out has nothing left to do:
+
 ```
 $ cmake --build build --target uzu_compile_time_fit   # about 3 s on GCC
-$ ./build/examples/uzu_compile_time_fit
-
-a 2 x 2 square, solved before this program started running:
-
-  corner 0 = (1.0014, 1.0014)
-  corner 1 = (3.0019, 1.0020)
-  corner 2 = (3.0021, 3.0021)
-  corner 3 = (1.0020, 3.0019)
-
-  error = 1.64e-07
+$ ./build/examples/uzu_compile_time_fit; echo "exit $?"
+exit 0
 ```
 
 ### The compiled program contains no optimizer
 
 That is the part worth checking rather than taking on faith. Build the same
-example twice — once as written, once with the anchor read from `argv` so
-nothing can be folded away — and compare what lands in the binary:
+example twice — once as written, once running the same fit in `main` with the
+anchor read from `argv`, so nothing can be folded away — and compare what lands
+in the binary (GCC, `-O3`):
 
-| the fit runs at | `.text` | functions emitted |
+| the fit runs at | `.text` | `main` |
 | --- | ---: | ---: |
-| **compile time** | **377 B** | **11** |
-| run time | 5290 B | 16 |
+| **compile time** | **249 B** | **7 B** |
+| run time | 5118 B | 1739 B |
 
-`main` in the compile-time build is three `printf` calls and a loop over four
-pairs of doubles. There is no graph in it, no dual number, and no descent —
-those are all in the compiler's memory, and none of them survived into the
-program. The answer did. `objdump -s -j .rodata` on the compile-time build dumps the
-read-only data, and decoding the bytes of the `fitted` object that `main`
-reads from gives:
+`main` in the compile-time build is `xor eax, eax; ret` — `return 0`, and
+nothing else. The 249 bytes around it are the C runtime's start-up code, which
+every executable carries. There is no graph in the program, no dual number and
+no descent, and not even the answer: nothing reads it at run time, so the
+compiler checked it and had no reason to keep it. Clang gives the same
+picture: 243 B against 3426 B, with a 3-byte `main`.
 
-```
-1.0014  1.0014    3.0019  1.0020    3.0021  3.0021    1.0020  3.0019
-```
-
-Eight doubles, which are the four corners, sitting in the executable as data.
-The optimization is not fast in this program — it already happened.
+A program that does want the answer only has to read `fitted` at run time,
+for example to print it. Then the four corners land in the executable's
+read-only data as eight doubles, and that is all that does. Either way the
+optimization is not fast in this program — it already happened.
 
 > GCC needs no flag for this: its default constant-evaluation budget is about
 > thirty million operations and the fit uses fewer. Clang's default is about a
