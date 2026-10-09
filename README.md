@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/images/uzu.svg" alt="uzu: a factor graph winding into a whirlpool, solved at its eye" width="160">
+</p>
+
 # uzu
 
 **Factor-graph optimization at compile time.**
