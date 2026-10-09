@@ -93,6 +93,23 @@ class node {
     estimation_ = static_cast<Derived *>(this)->plus(delta);
   }
 
+  /// @brief Whether the fit may move this node. A disabled node is held where it is: edges still
+  /// read its estimate, as a constant, but `fit` neither steps it nor calls the algorithm for its
+  /// indices. Nodes start enabled.
+  constexpr auto enabled() const -> bool {
+    return enabled_;
+  }
+
+  /// @brief Lets the fit move this node again.
+  constexpr auto enable() -> void {
+    enabled_ = true;
+  }
+
+  /// @brief Holds this node where it is until it is enabled again.
+  constexpr auto disable() -> void {
+    enabled_ = false;
+  }
+
  private:
   /// @brief A delta with every dimension set to the same value.
   static constexpr auto filled(value_type value) -> point {
@@ -105,6 +122,7 @@ class node {
 
   estimation_type estimation_{};
   point sigma_{};
+  bool enabled_{true};
 };
 
 }  // namespace uzu

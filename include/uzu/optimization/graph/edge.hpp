@@ -84,6 +84,23 @@ class edge {
     measurement_ = value;
   }
 
+  /// @brief Whether this edge counts. A disabled edge is not evaluated at all: it adds nothing
+  /// to the graph's error or to its gradient, so the fit runs as if it were not declared. Edges
+  /// start enabled.
+  constexpr auto enabled() const -> bool {
+    return enabled_;
+  }
+
+  /// @brief Counts this edge again.
+  constexpr auto enable() -> void {
+    enabled_ = true;
+  }
+
+  /// @brief Leaves this edge out of the error until it is enabled again.
+  constexpr auto disable() -> void {
+    enabled_ = false;
+  }
+
  private:
   /// @brief The measurement `init` asks for, or a zeroed one.
   ///
@@ -117,6 +134,7 @@ class edge {
   // -Wreorder has nothing to say.
   point sigma_{};
   measurement_type measurement_{};
+  bool enabled_{true};
 };
 
 }  // namespace uzu

@@ -124,14 +124,29 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   ///
   /// It starts from a zero over the whole index space so that the result tracks every index:
   /// an edge that happens not to depend on one of its nodes' dimensions would otherwise leave
-  /// that index out of the result's type, and asking for its derivative would not compile.
+  /// that index out of the result's type, and asking for its derivative would not compile. The
+  /// zero is also what the total is when there are no edges, or none enabled.
   constexpr auto total_error() const {
     return total_error(std::make_index_sequence<sizeof...(Es)>{});
   }
 
   template <std::size_t... Is>
   constexpr auto total_error(std::index_sequence<Is...>) const {
-    return (dual::zero<value_type, width>() + ... + edge_error<Is>());
+    auto total = dual::zero<value_type, width>();
+    (add_edge_error<Is>(total), ...);
+    return total;
+  }
+
+  /// @brief Adds edge @p I's error to @p total, if the edge is enabled. A disabled edge is not
+  /// evaluated at all.
+  ///
+  /// The total already carries every index, so adding an edge's error to it changes no index set
+  /// and the sum converts back to the total's own type.
+  template <std::size_t I, class Total>
+  constexpr auto add_edge_error(Total &total) const -> void {
+    if (edge_at<I>().enabled()) {
+      total = total + edge_error<I>();
+    }
   }
 
   /// @brief One edge's contribution to the total: its error evaluated on its nodes' seeded
@@ -217,6 +232,9 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   /// rather than of the rule used to descend it. What reaches the algorithm is the sign of the
   /// derivative and a magnitude below one, whichever dimension it came from.
   ///
+  /// A disabled node is left where it is, and the algorithm is not called for its indices at
+  /// all - so a stateful one, like `momentum`, keeps that node's velocity until it is enabled.
+  ///
   /// The kernel is pure, so the whole slope is normalised before the algorithm is called. The
   /// braced list then fixes the order the algorithm is called in: its elements are evaluated left
   /// to right, so within a node, too, the algorithm sees its indices in order.
@@ -225,9 +243,11 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
     using entry = typename layout::template entry_at<I>;
     constexpr auto offset = layout::offset_of(entry::key);
     auto &node = node_at<I>();
-    const auto slope = dual::derivatives<offset, entry::width>(total);
-    const auto slope_normalized = kernel::signed_radial(slope, node.sigma());
-    node.update({algorithm_.template step<offset + Ks>(slope_normalized[Ks])...});
+    if (node.enabled()) {
+      const auto slope = dual::derivatives<offset, entry::width>(total);
+      const auto slope_normalized = kernel::signed_radial(slope, node.sigma());
+      node.update({algorithm_.template step<offset + Ks>(slope_normalized[Ks])...});
+    }
   }
 
   algorithm_type algorithm_;
