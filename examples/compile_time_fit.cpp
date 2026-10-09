@@ -19,7 +19,7 @@
 ///
 /// The point is the one line that matters, at the top of `main`:
 ///
-///     static constexpr auto fitted = solve();
+///     constexpr auto fitted = solve();
 ///
 /// `constexpr` there is not decoration. It says the initializer must be a *constant expression*,
 /// so the compiler has to run the whole fit -- build the graph, seed the dual numbers, evaluate
@@ -27,12 +27,12 @@
 /// `static_assert`s that follow it then check the answer with the program still being compiled.
 /// The program exists at all only because every one of them held.
 ///
-/// The compiled program contains no optimizer. It has four pairs of doubles.
+/// Nothing is left for the program to do at run time, and it does nothing: `main` returns 0. The
+/// optimizer, the graph and even the answer exist only in the compiler, which checked the answer
+/// and then had no reason to keep any of it.
 /// ===============================================================================================
 
 #include <array>
-#include <cstddef>
-#include <cstdio>
 #include <type_traits>
 
 #include "uzu.h"
@@ -145,7 +145,7 @@ auto main() -> int {
   // expression: if `solve()` could not be constant-evaluated -- if anything on its path reached
   // for `<cmath>`, allocated, or ran past the compiler's evaluation budget -- this line would not
   // compile. It does, so by the time `main` starts, the square is already solved.
-  static constexpr auto fitted = solve();
+  constexpr auto fitted = solve();
 
   // `std::fabs` cannot run in a constant expression, and this is all of it that is needed.
   constexpr auto close = [](double a, double b) {
@@ -176,15 +176,7 @@ auto main() -> int {
 
   static_assert(side_length::value == 2, "the square the fit found is two units on a side");
 
-  std::printf(
-      "a %d x %d square, solved before this program started running:\n\n",
-      side_length::value,
-      side_length::value);
-
-  for (std::size_t i = 0; i < fitted.corners.size(); ++i) {
-    std::printf("  corner %zu = (%.4f, %.4f)\n", i, fitted.corners[i][0], fitted.corners[i][1]);
-  }
-
-  std::printf("\n  error = %.3g\n", fitted.error);
+  // Every check above ran while this file was compiled, and the program exists only because they
+  // all held. There is nothing left for it to do.
   return 0;
 }
