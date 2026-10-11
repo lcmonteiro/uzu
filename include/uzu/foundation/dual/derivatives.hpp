@@ -1,57 +1,37 @@
 /// ===============================================================================================
 /// @file
 ///
-/// @brief A zero over a dense range of derivative indices, and the derivatives of a number over
-/// one.
+/// @brief Accumulating a number's derivatives into a dense array, one slot per index.
 ///
-/// Both answer to the same situation: a computation whose dual indices are `[0, N)` - one per
-/// unknown - and whose result is wanted back as a plain array, or a slice of one. Local to this
-/// repository, not part of the upstream snapshot; see docs/dual-storage.md.
+/// A dual number carries only the indices that flowed into it, which keeps each operation as
+/// cheap as the computation is local. Many such numbers summed into one dual would widen it to
+/// every index, and make every addition pay for all of them. Accumulating into a dense array
+/// instead costs one addition per index the number actually carries. Local to this repository, not
+/// part of the upstream snapshot; see docs/dual-snapshot.md.
 /// ===============================================================================================
 #ifndef UZU_FOUNDATION_DUAL_DERIVATIVES_HPP
 #define UZU_FOUNDATION_DUAL_DERIVATIVES_HPP
 
 #include <array>
 #include <cstddef>
-#include <utility>
 
-#include "uzu/foundation/dual/indices.hpp"
 #include "uzu/foundation/dual/number.hpp"
 
 namespace dual {
 
-/// @brief A number whose value and every derivative are zero, carrying indices `[0, Count)`.
+/// @brief Adds each derivative of @p x into @p into, at the slot of its own index.
 ///
-/// A sum's type carries the union of its terms' indices, so a sum that starts from this one
-/// carries every index in the range whether or not a term depends on it - and a derivative asked
-/// for at an index nothing touched reads zero instead of failing to compile.
+/// Slots for indices @p x does not carry are left alone, so accumulating several numbers in turn
+/// gives each slot the sum of the derivatives that reached it, and zero where none did.
 /// @tparam T The scalar type.
-/// @tparam Count How many indices, starting at 0.
-template <class T, std::size_t Count>
-constexpr auto zero() {
-  using type = typename indices_sequence_t<0, Count>::template type<number, T>;
-  return type{T{0}, T{0}};
-}
-
-/// @brief Internal details for reading derivatives out.
-namespace details {
-template <std::size_t Begin, class T, std::size_t... Dn, std::size_t... Ks>
-constexpr auto derivatives(const number<T, Dn...> &x, std::index_sequence<Ks...>) {
-  return std::array<T, sizeof...(Ks)>{x.template dvalue<Begin + Ks>()...};
-}
-}  // namespace details
-
-/// @brief The derivatives of @p x at indices `[Begin, Begin + Count)`, in index order.
-///
-/// Every index in the range must be one @p x carries; one it does not is a compile error, the
-/// same as asking `dvalue` for it directly.
-/// @tparam Begin The first index.
-/// @tparam Count How many indices.
-/// @param x The number to read.
-/// @return The derivatives, as plain scalars.
-template <std::size_t Begin, std::size_t Count, class T, std::size_t... Dn>
-constexpr auto derivatives(const number<T, Dn...> &x) -> std::array<T, Count> {
-  return details::derivatives<Begin>(x, std::make_index_sequence<Count>{});
+/// @tparam Dn The indices @p x carries; each must be a slot of @p into.
+/// @tparam N How many slots @p into has.
+/// @param x The number whose derivatives are added.
+/// @param into The dense array they are added into.
+template <class T, std::size_t... Dn, std::size_t N>
+constexpr auto accumulate(const number<T, Dn...> &x, std::array<T, N> &into) -> void {
+  static_assert(((Dn < N) && ...), "a derivative index lies outside the array it is added into");
+  ((into[Dn] += x.template dvalue<Dn>()), ...);
 }
 
 }  // namespace dual

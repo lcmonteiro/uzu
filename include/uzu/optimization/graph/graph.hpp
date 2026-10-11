@@ -9,14 +9,14 @@
 ///     meta::keyed_layout      which block of dual indices each node takes up
 ///     graph/entries.hpp       how a node or an edge enters the graph
 ///     graph/contracts.hpp     what the edges must satisfy
-///     dual::zero/derivatives  a total that tracks every index, and reading it back out
+///     dual::accumulate        gathering each edge's derivatives into the graph's gradient
 ///     kernel.hpp              robustifying an error, bounding a gradient
 ///     the Algorithm           turning a bounded gradient into a step
 ///
 /// and what is left is the flow between them:
 ///
 ///     error()     -> total_error() -> edge_error() for each edge
-///     gradient()  -> dual::derivatives(total_error())
+///     gradient()  -> total_error()
 ///     fit()       -> descend() -> total_error(), then update_node() for each node
 /// ===============================================================================================
 #ifndef UZU_OPTIMIZATION_GRAPH_GRAPH_HPP
@@ -81,6 +81,13 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   /// each declared node, and nothing more.
   static constexpr std::size_t width = layout::width;
 
+  /// @brief The total error of every enabled edge, and its derivative with respect to every graph
+  /// index, in the order the nodes were declared.
+  struct total {
+    value_type error{};
+    std::array<value_type, width> gradient{};
+  };
+
   explicit constexpr graph(const Algorithm &algorithm, nodes<Ns...> ns, edges<Es...> es)
       : algorithm_{algorithm.template build<width>()}, nodes_{ns.entries}, edges_{es.entries} {
   }
@@ -97,15 +104,15 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   }
 
   /// @brief The total error of the current estimates, robustified.
-  constexpr auto error() const {
-    return total_error().value();
+  constexpr auto error() const -> value_type {
+    return total_error().error;
   }
 
   /// @brief The derivative of that error with respect to every graph index,
   /// in the order the nodes were declared. Exposed for diagnostics and for
   /// checking the derivatives against finite differences.
-  constexpr auto gradient() const {
-    return dual::derivatives<0, width>(total_error());
+  constexpr auto gradient() const -> std::array<value_type, width> {
+    return total_error().gradient;
   }
 
  private:
@@ -120,32 +127,35 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   // The error.
   // ---------------------------------------------------------------------------------------------
 
-  /// @brief The total error across every edge, as a dual carrying every graph index.
+  /// @brief The total error across every enabled edge, and its gradient.
   ///
-  /// It starts from a zero over the whole index space so that the result tracks every index:
-  /// an edge that happens not to depend on one of its nodes' dimensions would otherwise leave
-  /// that index out of the result's type, and asking for its derivative would not compile. The
-  /// zero is also what the total is when there are no edges, or none enabled.
-  constexpr auto total_error() const {
+  /// The gradient is a dense array with a slot per graph index, starting at zero, so every index
+  /// is there whether or not an edge reached it - and an index no edge reached, or a graph with no
+  /// edges at all, simply reads zero.
+  constexpr auto total_error() const -> total {
     return total_error(std::make_index_sequence<sizeof...(Es)>{});
   }
 
   template <std::size_t... Is>
-  constexpr auto total_error(std::index_sequence<Is...>) const {
-    auto total = dual::zero<value_type, width>();
-    (add_edge_error<Is>(total), ...);
-    return total;
+  constexpr auto total_error(std::index_sequence<Is...>) const -> total {
+    auto sum = total{};
+    (add_edge_error<Is>(sum), ...);
+    return sum;
   }
 
-  /// @brief Adds edge @p I's error to @p total, if the edge is enabled. A disabled edge is not
-  /// evaluated at all.
+  /// @brief Adds edge @p I's error and derivatives to @p sum, if the edge is enabled. A disabled
+  /// edge is not evaluated at all.
   ///
-  /// The total already carries every index, so adding an edge's error to it changes no index set
-  /// and the sum converts back to the total's own type.
-  template <std::size_t I, class Total>
-  constexpr auto add_edge_error(Total &total) const -> void {
+  /// An edge's error is a dual carrying only the indices of the nodes it links, so it is added in
+  /// that many steps. Summing the edges' duals into one instead would widen the sum to every graph
+  /// index, and make each edge pay for the whole graph: quadratic in its size, in run time, in
+  /// generated code and in compile time alike.
+  template <std::size_t I>
+  constexpr auto add_edge_error(total &sum) const -> void {
     if (edge_at<I>().enabled()) {
-      total = total + edge_error<I>();
+      const auto error = edge_error<I>();
+      sum.error += error.value();
+      dual::accumulate(error, sum.gradient);
     }
   }
 
@@ -219,9 +229,9 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
 
   template <std::size_t... Is>
   constexpr auto descend(std::index_sequence<Is...>) -> void {
-    const auto total = total_error();
+    const auto sum = total_error();
 
-    (update_node<Is>(total, std::make_index_sequence<layout::template entry_at<Is>::width>{}), ...);
+    (update_node<Is>(sum, std::make_index_sequence<layout::template entry_at<Is>::width>{}), ...);
   }
 
   /// @brief Steps node @p I along its own slice of the total error's derivatives.
@@ -238,13 +248,13 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   /// The kernel is pure, so the whole slope is normalised before the algorithm is called. The
   /// braced list then fixes the order the algorithm is called in: its elements are evaluated left
   /// to right, so within a node, too, the algorithm sees its indices in order.
-  template <std::size_t I, class Total, std::size_t... Ks>
-  constexpr auto update_node(const Total &total, std::index_sequence<Ks...>) -> void {
+  template <std::size_t I, std::size_t... Ks>
+  constexpr auto update_node(const total &sum, std::index_sequence<Ks...>) -> void {
     using entry = typename layout::template entry_at<I>;
     constexpr auto offset = layout::offset_of(entry::key);
     auto &node = node_at<I>();
     if (node.enabled()) {
-      const auto slope = dual::derivatives<offset, entry::width>(total);
+      const auto slope = std::array<value_type, entry::width>{sum.gradient[offset + Ks]...};
       const auto slope_normalized = kernel::signed_radial(slope, node.sigma());
       node.update({algorithm_.template step<offset + Ks>(slope_normalized[Ks])...});
     }

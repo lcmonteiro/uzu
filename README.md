@@ -125,17 +125,17 @@ example twice — once as written, once running the same fit in `main` with the
 anchor read from `argv`, so nothing can be folded away — and compare what lands
 in the binary (GCC, `-O3`):
 
-| the fit runs at | `.text` | `main` |
-| --- | ---: | ---: |
-| **compile time** | **249 B** | **7 B** |
-| run time | 5118 B | 1739 B |
+| the fit runs at | `.text` |
+| --- | ---: |
+| **compile time** | **249 B** |
+| run time | 5211 B |
 
-`main` in the compile-time build is `xor eax, eax; ret` — `return 0`, and
-nothing else. The 249 bytes around it are the C runtime's start-up code, which
-every executable carries. There is no graph in the program, no dual number and
-no descent, and not even the answer: nothing reads it at run time, so the
-compiler checked it and had no reason to keep it. Clang gives the same
-picture: 243 B against 3426 B, with a 3-byte `main`.
+`main` in the compile-time build is `xor eax, eax; ret` — 7 bytes of
+`return 0`, and nothing else. The 249 bytes around it are the C runtime's
+start-up code, which every executable carries. There is no graph in the
+program, no dual number and no descent, and not even the answer: nothing reads
+it at run time, so the compiler checked it and had no reason to keep it. Clang
+gives the same picture: 243 B against 3329 B, with a 3-byte `main`.
 
 A program that does want the answer only has to read `fitted` at run time,
 for example to print it. Then the four corners land in the executable's
@@ -421,14 +421,14 @@ actually built.
 | [graph_enable_test.cpp](tests/graph_enable_test.cpp) | A disabled edge leaves the error and gradient exactly as if it were not declared; a disabled node is held while its neighbour moves; both switch back on. |
 | [graph_contracts_test.cpp](tests/graph_contracts_test.cpp) | The edge contract on its own: an edge over an undeclared key is caught, and an empty edge list passes. |
 | [keyed_layout_test.cpp](tests/keyed_layout_test.cpp) | The generic layout: lookups, offsets, width, and a repeated key caught, with no graph involved. |
-| [dual_derivatives_test.cpp](tests/dual_derivatives_test.cpp) | `dual::zero` widens a sum to every index; `dual::derivatives` reads a full range or a slice back out. |
+| [dual_derivatives_test.cpp](tests/dual_derivatives_test.cpp) | `dual::accumulate` adds each derivative into its own slot of a dense array, summing where numbers overlap and leaving the rest alone. |
 | [keywords_test.cpp](tests/keywords_test.cpp) | Sigma broadcasting, and keyword order independence. |
 | [trajectory_compile_time_test.cpp](tests/trajectory_compile_time_test.cpp) | A four-pose chain, started from one point, recovered exactly — by the compiler. |
 | [optimization_trajectory_test.cpp](tests/optimization_trajectory_test.cpp) | A noisy 12- and 24-pose trajectory with random initial guesses and loop closures, recovered to within vortex's own accuracy bound. The one test here that runs rather than compiles, and most of the suite's build time. |
 | [dual_test.cpp](tests/dual_test.cpp), [dual_array_test.cpp](tests/dual_array_test.cpp) | The duals themselves, as run-time programs carried over from the vendored snapshot. |
 
-A clean build of the whole suite takes about 47 s on GCC and 59 s on Clang
-with `-j`, most of it the trajectory pair. Every test is deterministic: the
+A clean build of the whole suite takes about 42 s on GCC and on Clang
+with `-j4`, most of it the trajectory pair. Every test is deterministic: the
 randomized problem draws from `mt19937` directly rather than through
 `std::uniform_real_distribution`, which is not specified to give the same
 sequence across standard libraries, so both compilers print the same numbers.
