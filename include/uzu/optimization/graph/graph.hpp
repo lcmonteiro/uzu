@@ -122,10 +122,10 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
 
   /// @brief The total error across every edge, as a dual carrying every graph index.
   ///
-  /// It starts from a zero over the whole index space so that the result tracks every index:
-  /// an edge that happens not to depend on one of its nodes' dimensions would otherwise leave
-  /// that index out of the result's type, and asking for its derivative would not compile. The
-  /// zero is also what the total is when there are no edges, or none enabled.
+  /// It starts from a zero over the whole index space, held densely, so that the result tracks
+  /// every index: an edge that happens not to depend on one of its nodes' dimensions leaves that
+  /// index at zero rather than out of the result. The zero is also what the total is when there
+  /// are no edges, or none enabled.
   constexpr auto total_error() const {
     return total_error(std::make_index_sequence<sizeof...(Es)>{});
   }
@@ -140,12 +140,12 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   /// @brief Adds edge @p I's error to @p total, if the edge is enabled. A disabled edge is not
   /// evaluated at all.
   ///
-  /// The total already carries every index, so adding an edge's error to it changes no index set
-  /// and the sum converts back to the total's own type.
+  /// The edge's error carries only the indices of the nodes it links, and adding it into the dense
+  /// total touches only those - so each edge costs what it links, not what the whole graph spans.
   template <std::size_t I, class Total>
   constexpr auto add_edge_error(Total &total) const -> void {
     if (edge_at<I>().enabled()) {
-      total = total + edge_error<I>();
+      total += edge_error<I>();
     }
   }
 
