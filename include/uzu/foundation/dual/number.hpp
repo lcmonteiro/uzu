@@ -57,6 +57,15 @@ struct number {
     return *this;
   }
 
+  /// @brief Subtracts @p other in place, the same way `+=` adds it: only the indices @p other
+  /// carries are touched, and each must be one this number carries too.
+  template <std::size_t... Ds>
+  constexpr auto operator-=(const number<T, Ds...> &other) -> number & {
+    value_ -= other.value();
+    (dvalue<Ds>(dvalue<Ds>() - other.template dvalue<Ds>()), ...);
+    return *this;
+  }
+
   /// @brief Implicit conversion to the stored scalar value.
   /// @return Constant reference to the stored value.
   constexpr operator const T &() const {
