@@ -34,6 +34,18 @@ static_assert(sparse.value() == 5.0, "adding the zero leaves the value alone");
 static_assert(sparse.dvalue<1>() == 2.0, "and the derivatives a term carried");
 static_assert(sparse.dvalue<3>() == 0.0, "and reads zero where no term reached");
 
+// Adding in place touches only the indices the term carries.
+constexpr auto added = [] {
+  auto total = dual::zero<double, 4>();
+  total += dual::number<double, 1>{5.0, 2.0};
+  total += dual::number<double, 1, 3>{1.0, 0.5};
+  return total;
+}();
+
+static_assert(added.value() == 6.0, "+= adds the values");
+static_assert(added.dvalue<1>() == 2.5, "and the derivatives at the indices the terms carry");
+static_assert(added.dvalue<3>() == 0.5 && added.dvalue<0>() == 0.0, "and leaves the rest alone");
+
 // ---------------------------------------------------------------------------------------------
 // Reading derivatives out.
 // ---------------------------------------------------------------------------------------------

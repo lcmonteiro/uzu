@@ -125,13 +125,13 @@ example twice — once as written, once running the same fit in `main` with the
 anchor read from `argv`, so nothing can be folded away — and compare what lands
 in the binary (GCC, `-O3`):
 
-| the fit runs at | `.text` | `main` |
-| --- | ---: | ---: |
-| **compile time** | **249 B** | **7 B** |
-| run time | 5118 B | 1739 B |
+| the fit runs at | `.text` |
+| --- | ---: |
+| **compile time** | **249 B** |
+| run time | 5211 B |
 
-`main` in the compile-time build is `xor eax, eax; ret` — `return 0`, and
-nothing else. The 249 bytes around it are the C runtime's start-up code, which
+`main` in the compile-time build is `xor eax, eax; ret` — 7 bytes of
+`return 0`, and nothing else. The 249 bytes around it are the C runtime's start-up code, which
 every executable carries. There is no graph in the program, no dual number and
 no descent, and not even the answer: nothing reads it at run time, so the
 compiler checked it and had no reason to keep it. Clang gives the same
