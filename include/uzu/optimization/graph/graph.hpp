@@ -140,12 +140,12 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   /// @brief Adds edge @p I's error to @p total, if the edge is enabled. A disabled edge is not
   /// evaluated at all.
   ///
-  /// The total already carries every index, so adding an edge's error to it changes no index set
-  /// and the sum converts back to the total's own type.
+  /// Added in place, so only the indices the edge carries are touched: an edge costs what it
+  /// links, not what the whole graph spans.
   template <std::size_t I, class Total>
   constexpr auto add_edge_error(Total &total) const -> void {
     if (edge_at<I>().enabled()) {
-      total = total + edge_error<I>();
+      total += edge_error<I>();
     }
   }
 
