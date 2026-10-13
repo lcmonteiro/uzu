@@ -368,9 +368,10 @@ applies to, rather than being fixed inside the fit. Three ship with the library:
 | `rprop{lr = ...}` | resilient propagation (iRprop-): one step size per dual index, starting at `lr`, grown by 1.2 while the gradient keeps its sign and halved when it flips; only the sign is read | [algorithm/rprop.hpp](include/uzu/optimization/algorithm/rprop.hpp) |
 
 `rprop` is the one that needs no tuning. It reads only the sign of the bounded
-gradient, so the node sigma stops being a step-size knob, and its `lr` is just
-where every step starts: from 0.001 to 1 it changes how many passes a fit
-takes by at most about 2x. Its steps also halve each time they overshoot, so it
+gradient, so the node sigma stops being a step-size knob (it is still what
+stops the fit: the kernel reads as zero once `|g| < 4.2e-8 * sigma`), and its
+`lr` is just where every step starts: from 0.001 to 1 it changes how many
+passes a fit takes by at most about 2x. Its steps also halve each time they overshoot, so it
 closes in geometrically near the minimum, where the kernel flattens the
 gradient and both descent rules crawl.
 

@@ -39,17 +39,33 @@ namespace uzu {
 ///
 /// The rule is meant for exact gradients, which is what the graph computes: there is no sampling
 /// noise for a sign to be fooled by.
+///
+/// What stops it is the node's sigma, not `step_min`. The kernel's output is exactly zero once
+/// `|g| < 4.2e-8 * sigma` (below that, `radial` rounds `1 - g^2 / 2 sigma^2 N` to one), and a zero
+/// takes no step. So the node sigma is not a step-size knob here, but it is the convergence
+/// threshold: a smaller sigma fits further before an index goes quiet.
 class rprop {
  public:
   using value_type = double;
 
   /// @brief How much a step grows while the sign holds, and shrinks when it flips. The values
-  /// are the ones the rule was published with, and the ones it is usually run with.
+  /// are the ones the rule was published with. Their product has to stay below one, or a pair of
+  /// indices flipping sign every other pass never settles: at 2.0 and 0.5 no fit converged at all.
+  /// Between 1.1 and 1.5, and 0.5 and 0.7, the passes a fit needs move by under 2x either way.
   static constexpr value_type grow = 1.2;
   static constexpr value_type shrink = 0.5;
+  static_assert(grow > 1 && shrink < 1 && grow * shrink < 1, "an oscillating index must settle");
 
-  /// @brief The bounds on a step. The upper one keeps a run of agreeing signs from compounding
-  /// without limit; the lower one is far enough down not to be what stops a fit.
+  /// @brief The bounds on a step, in the estimate's own units.
+  ///
+  /// The upper one keeps a run of agreeing signs from compounding without limit - which matters
+  /// more here than elsewhere, because a step that throws a node past the kernel's rejection
+  /// point of every edge it has leaves it with no gradient at all, and nothing ever moves it
+  /// back. Fits that start tens of units away peak around ten; this is a guard, not a pace.
+  ///
+  /// The lower one is set below anything a fit reaches, so that the kernel's dead zone stops a
+  /// fit rather than this does (see above). Fits end on steps of 1e-10 to 1e-8. At the 1e-6 the
+  /// rule is usually published with, every index would instead oscillate at 1e-6 forever.
   static constexpr value_type step_max = 50.0;
   static constexpr value_type step_min = 1e-12;
 
