@@ -9,6 +9,7 @@
 #ifndef UZU_OPTIMIZATION_ALGORITHM_RPROP_HPP
 #define UZU_OPTIMIZATION_ALGORITHM_RPROP_HPP
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 
@@ -68,26 +69,35 @@ class rprop {
     template <std::size_t Index>
     constexpr auto step(value_type gradient) -> value_type {
       static_assert(Index < Width, "index outside the graph this instance was built for");
+
       auto &size = step_[Index];
       auto &last = last_[Index];
 
-      const auto sign = gradient > 0 ? 1 : gradient < 0 ? -1 : 0;
-      if (sign * last > 0) {
-        size = size * grow < step_max ? size * grow : step_max;
-      } else if (sign * last < 0) {
-        // Overshot: shrink, take no step, and forget the sign so the next pass neither grows
-        // nor shrinks again on the strength of the one that was just undone.
-        size = size * shrink > step_min ? size * shrink : step_min;
-        last = 0;
-        return 0;
+      const auto sign = gradient > zero ? one : gradient < zero ? -one : zero;
+      const auto sign_product = sign * last;
+      if (sign_product < zero) {
+        // Overshot: shrink the step and skip this iteration. The sign is forgotten too, so the
+        // next pass neither grows nor shrinks again on the strength of the one just undone.
+        size = std::max(step_min, size * shrink);
+        last = zero;
+        return zero;
       }
+
+      if (sign_product > zero) {
+        // Consistent direction: grow the step.
+        size = std::min(step_max, size * grow);
+      }
+
       last = sign;
-      return -static_cast<value_type>(sign) * size;
+      return -sign * size;
     }
 
    private:
+    static constexpr value_type zero = 0.0;
+    static constexpr value_type one = 1.0;
+
     std::array<value_type, Width> step_{};
-    std::array<int, Width> last_{};
+    std::array<value_type, Width> last_{};
   };
 
   /// @brief Builds the algorithm from `lr`, the step every index starts with. Defaults to 0.1.
