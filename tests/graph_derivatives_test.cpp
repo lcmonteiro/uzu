@@ -104,6 +104,58 @@ constexpr auto derivatives = measure_derivatives();
 static_assert(derivatives.width == 4, "one block per declared node, however many edges name it");
 static_assert(derivatives.worst <= 1e-6, "every derivative matches a central difference");
 
+// ---------------------------------------------------------------------------------------------
+// An edge with a single residual.
+//
+// The residual and the sigmas are zipped before they are summed, and a one-row zip is the case
+// class template argument deduction gets wrong: `std::tuple(row)` over a tuple `row` deduces a
+// copy of it instead of wrapping it, so the sum would run over the row's elements. This graph
+// only compiles if one residual comes through as one row.
+// ---------------------------------------------------------------------------------------------
+
+/// @brief The residual `x + y - m`: one number from a two-dimensional node.
+struct sum_of_coordinates : uzu::edge<sum_of_coordinates, std::array<double, 1>, 1> {
+  using base = uzu::edge<sum_of_coordinates, std::array<double, 1>, 1>;
+  using base::base;
+
+  template <class A>
+  constexpr auto error(const A &a) const {
+    return dual::array{std::get<0>(a) + std::get<1>(a) - measurement()[0]};
+  }
+};
+
+constexpr auto measure_single_residual() -> derivative_report {
+  auto n = point2(init = {0.3, -0.7}, sigma = {1.0, 1.0});
+  auto e = sum_of_coordinates(init = {1.0}, sigma = {2.0});
+
+  auto g = uzu::graph{gradient{lr = 0.1}, nodes{key<0>(n)}, edges{link<0>(e)}};
+  const auto analytic = g.gradient();
+
+  const double h = 1e-6;
+  double worst = 0.0;
+  for (std::size_t k = 0; k < 2; ++k) {
+    const auto held = n.estimation();
+    auto up = held;
+    up[k] += h;
+    n.estimation(up);
+    const auto above = g.error();
+    auto down = held;
+    down[k] -= h;
+    n.estimation(down);
+    const auto below = g.error();
+    n.estimation(held);
+
+    const auto apart = magnitude(analytic[k] - (above - below) / (2 * h));
+    worst = apart > worst ? apart : worst;
+  }
+  return {.width = analytic.size(), .worst = worst};
+}
+
+constexpr auto single_residual = measure_single_residual();
+
+static_assert(single_residual.width == 2, "one block for the one node");
+static_assert(single_residual.worst <= 1e-6, "a one-residual edge differentiates like any other");
+
 }  // namespace
 
 /// @brief Everything above has already passed by the time this runs; reaching it means the

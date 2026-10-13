@@ -37,9 +37,14 @@ constexpr auto zip(const Ts &...containers) {
 ///
 /// The index sequence is a tag: it is there to deduce `Is...` and is never read, so it is left
 /// unnamed rather than named and ignored.
+///
+/// The outer tuple's type is spelled out rather than deduced. With one index, `std::tuple(x)`
+/// over a tuple `x` deduces a copy of `x` -- CTAD prefers the copy deduction candidate -- so a
+/// single row would come back unwrapped, as its own elements, and an edge with one residual
+/// would not compile.
 template <size_t... Is, class... Ts>
 constexpr auto zip(indices<Is...>, const Ts &...containers) {
-  return std::tuple(details::zip<Is>(containers...)...);
+  return std::tuple<decltype(details::zip<Is>(containers...))...>(details::zip<Is>(containers...)...);
 }
 
 /// @brief Zips multiple containers together, element-wise.
