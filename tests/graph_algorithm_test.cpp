@@ -2,7 +2,7 @@
 /// @file
 ///
 /// @brief Momentum: what it does with the velocity it carries, and that it carries none across
-/// graphs.
+/// graphs. Rprop: that it steps by sign alone, and closes in where the descent rules crawl.
 ///
 /// Four properties, in the order they can go wrong: `beta = 0` must be plain descent exactly;
 /// the velocity must be the bounded gradient accumulated and bled; one builder handed to two
@@ -28,6 +28,7 @@ using uzu::init;
 using uzu::iterations;
 using uzu::lr;
 using uzu::momentum;
+using uzu::rprop;
 using uzu::sigma;
 using uzu::test::absolute;
 using uzu::test::close;
@@ -177,11 +178,57 @@ static_assert(plain_passes > 0, "plain descent reaches the threshold at all");
 static_assert(heavy_passes > 0, "and so does momentum");
 static_assert(heavy_passes < plain_passes, "momentum reaches it in fewer passes");
 
+// ---------------------------------------------------------------------------------------------
+// Rprop.
+// ---------------------------------------------------------------------------------------------
+
+/// @brief The first pass moves every index by exactly `lr`, whatever the gradient's size: only
+/// its sign is read. Two nodes pulled the same way from different distances move the same.
+struct first_step_report {
+  double near_x;
+  double far_x;
+  double far_y;
+};
+
+constexpr auto measure_first_step() -> first_step_report {
+  auto a = point2(init = {1.0, 1.0}, sigma = {0.5, 0.5});
+  auto b = point2(init = {1.0, 1.0}, sigma = {0.5, 0.5});
+  auto near = absolute(init = {1.5, 1.0}, sigma = {2.0});
+  auto far = absolute(init = {9.0, -7.0}, sigma = {20.0});
+
+  auto ga = pulled(a, near, rprop{lr = 0.25});
+  auto gb = pulled(b, far, rprop{lr = 0.25});
+  ga.fit(iterations = 1);
+  gb.fit(iterations = 1);
+
+  return {.near_x = a.estimation()[0], .far_x = b.estimation()[0], .far_y = b.estimation()[1]};
+}
+
+constexpr auto first_step = measure_first_step();
+
+static_assert(close(first_step.near_x, 1.25, 1e-12), "the first step is lr, towards the measurement");
+static_assert(close(first_step.far_x, 1.25, 1e-12), "however far away the measurement is");
+static_assert(close(first_step.far_y, 0.75, 1e-12), "and in each dimension by its own sign");
+
+/// @brief On the same slope as above, from the same `lr`, rprop is faster than momentum - and
+/// it keeps going. The descent rules' steps shrink with the square of the gradient near the
+/// minimum, so neither gets the error to 1e-12 in two thousand passes; rprop's steps halve
+/// each time they overshoot, so it gets there in under a hundred.
+constexpr auto rprop_passes = passes_to(rprop{lr = 0.02}, 0.02, 2000);
+constexpr auto rprop_exact = passes_to(rprop{lr = 0.02}, 1e-12, 2000);
+constexpr auto heavy_exact = passes_to(momentum{lr = 0.02, beta = 0.9}, 1e-12, 2000);
+
+static_assert(rprop_passes > 0 && rprop_passes < heavy_passes, "rprop reaches it before momentum");
+static_assert(rprop_exact > 0 && rprop_exact < 100, "and reaches 1e-12 within a hundred passes");
+static_assert(heavy_exact == 0, "where momentum does not in two thousand");
+
 }  // namespace
 
 /// @brief Everything above has already passed by the time this runs; reaching it means the
 /// compiler evaluated every fit and every assertion held.
 auto main() -> int {
-  std::printf("  (passes to error < 0.02: descent %d, momentum %d)\n", plain_passes, heavy_passes);
+  std::printf(
+      "  (passes to error < 0.02: descent %d, momentum %d, rprop %d; to 1e-12: rprop %d)\n",
+      plain_passes, heavy_passes, rprop_passes, rprop_exact);
   return uzu::test::passed("algorithms");
 }

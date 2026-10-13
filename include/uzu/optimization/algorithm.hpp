@@ -53,5 +53,6 @@
 
 #include "uzu/optimization/algorithm/gradient.hpp"
 #include "uzu/optimization/algorithm/momentum.hpp"
+#include "uzu/optimization/algorithm/rprop.hpp"
 
 #endif  // UZU_OPTIMIZATION_ALGORITHM_HPP
