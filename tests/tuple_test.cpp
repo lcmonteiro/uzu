@@ -76,6 +76,25 @@ constexpr auto visited() {
 }
 static_assert(visited() == std::array<int, 4>{7, 8, 9, 10}, "for_each goes in order");
 
+/// @brief A result type whose comma operator is deleted. for_each throws away what `f` returns,
+/// and must do so with the built-in comma: `(f(x), 0)` would pick this overload instead, and
+/// fail to compile. A comma that is overloaded rather than deleted would be worse - it would be
+/// called, and could do anything.
+struct no_comma {
+  int value;
+  friend auto operator,(no_comma, int) -> int = delete;
+};
+
+constexpr auto discarded() {
+  int sum = 0;
+  uzu::for_each(uzu::tuple{1, 2, 3}, [&](int x) {
+    sum += x;
+    return no_comma{x};
+  });
+  return sum;
+}
+static_assert(discarded() == 6, "for_each ignores what f returns, whatever its comma does");
+
 // ---------------------------------------------------------------------------------------------
 // Length.
 //

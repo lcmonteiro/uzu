@@ -105,8 +105,10 @@ template <class F, class Tuple, std::size_t... Is>
 constexpr void for_each(Tuple &&t, F &&f, std::index_sequence<Is...>) {
   // An initializer list rather than a comma fold: evaluated left to right all the same, and flat
   // at any length, where a fold nests as deep as there are elements and clang refuses past 256.
+  // What `f` returns is cast to void first, so the comma is always the built-in one: a result
+  // type that overloads `operator,` would otherwise have that overload called here instead.
   [[maybe_unused]] const std::array<int, sizeof...(Is)> in_order{
-      (f(uzu::get<Is>(static_cast<Tuple &&>(t))), 0)...};
+      (static_cast<void>(f(uzu::get<Is>(static_cast<Tuple &&>(t)))), 0)...};
 }
 
 }  // namespace impl
