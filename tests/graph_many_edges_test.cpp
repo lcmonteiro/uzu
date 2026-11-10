@@ -66,9 +66,8 @@ constexpr auto measure(std::index_sequence<Is...>) -> many_report {
   auto g = uzu::graph{rprop{lr = 0.1}, nodes{key<0>(n)}, edges{link<0>(measured[Is])...}};
 
   const auto half = static_cast<double>(sizeof...(Is) / 2);
-  const auto expected =
-      half * (uzu::kernel::radial(1.0, 4.0) + uzu::kernel::radial(2.0, 4.0)) +
-      half * (uzu::kernel::radial(3.0, 4.0) + uzu::kernel::radial(4.0, 4.0));
+  const auto expected = half * (uzu::kernel::radial(1.0, 4.0) + uzu::kernel::radial(2.0, 4.0)) +
+                        half * (uzu::kernel::radial(3.0, 4.0) + uzu::kernel::radial(4.0, 4.0));
 
   const auto error = g.error();
   const auto slope = g.gradient()[0];
@@ -87,9 +86,11 @@ constexpr auto measure(std::index_sequence<Is...>) -> many_report {
 constexpr auto many = measure(std::make_index_sequence<kEdges>{});
 
 static_assert(many.width == 2, "300 edges on one node still take up one block");
-static_assert(close(many.error, many.expected_error, 1e-9), "every one of the 300 edges is counted");
+static_assert(
+    close(many.error, many.expected_error, 1e-9), "every one of the 300 edges is counted");
 static_assert(many.gradient_x < 0.0, "and pulls the node towards the measurements");
-static_assert(close(many.x, 0.1, 1e-12) && close(many.y, 0.1, 1e-12), "one pass of the fit moves it");
+static_assert(
+    close(many.x, 0.1, 1e-12) && close(many.y, 0.1, 1e-12), "one pass of the fit moves it");
 
 }  // namespace
 

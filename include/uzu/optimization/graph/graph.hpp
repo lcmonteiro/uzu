@@ -128,7 +128,8 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
     // In order, through an initializer list rather than a comma fold: a fold nests as deep as
     // there are edges, and clang refuses past 256. A braced list is flat, and is evaluated left
     // to right just the same.
-    [[maybe_unused]] const std::array<int, sizeof...(Is)> in_order{(add_edge_error<Is, Es>(total), 0)...};
+    [[maybe_unused]] const std::array<int, sizeof...(Is)> in_order{
+        (add_edge_error<Is, Es>(total), 0)...};
     return total;
   }
 
@@ -168,8 +169,8 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
         [](const auto &residual, const auto &sigma) { return kernel::radial(residual, sigma); });
   }
 
-  /// @brief What edge @p I is evaluated on: the estimate of each node it links, seeded as duals
-  /// at that node's block in the graph's index space.
+  /// @brief What the edge entered as @p Entry is evaluated on: the estimate of each node it links,
+  /// seeded as duals at that node's block in the graph's index space.
   template <class Entry, std::size_t... Js>
   constexpr auto edge_inputs(std::index_sequence<Js...>) const {
     return std::tuple{seeded_node<Entry::keys[Js]>()...};
