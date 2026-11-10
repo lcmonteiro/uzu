@@ -19,6 +19,8 @@
 #include <cstddef>
 #include <tuple>
 
+#include "uzu/helpers/ranges.hpp"
+
 namespace uzu {
 namespace meta {
 
@@ -46,13 +48,7 @@ struct keyed_layout {
   ///
   /// Summed over `widths` rather than folded over the pack: a fold nests as deep as there are
   /// entries, and clang refuses past 256.
-  static constexpr std::size_t width = [] {
-    std::size_t sum = 0;
-    for (const std::size_t w : widths) {
-      sum += w;
-    }
-    return sum;
-  }();
+  static constexpr std::size_t width = uzu::accumulate(widths, std::size_t{0});
 
   /// @brief The entry at position @p I.
   template <std::size_t I>
