@@ -125,9 +125,6 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   template <std::size_t... Is>
   constexpr auto total_error(std::index_sequence<Is...>) const {
     auto total = dual::zero<value_type, width>();
-    // In order, through an initializer list rather than a comma fold: a fold nests as deep as
-    // there are edges, and clang refuses past 256. A braced list is flat, and is evaluated left
-    // to right just the same.
     [[maybe_unused]] const std::array<int, sizeof...(Is)> in_order{
         (add_edge_error<Is, Es>(total), 0)...};
     return total;
@@ -218,7 +215,6 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   constexpr auto descend(std::index_sequence<Is...>) -> void {
     const auto total = total_error();
 
-    // In order, and flat for the same reason as `total_error`.
     [[maybe_unused]] const std::array<int, sizeof...(Is)> in_order{
         (update_node<Is, Ns>(total, std::make_index_sequence<Ns::width>{}), 0)...};
   }
