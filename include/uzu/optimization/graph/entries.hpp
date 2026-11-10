@@ -12,7 +12,8 @@
 
 #include <array>
 #include <cstddef>
-#include <utility>
+
+#include "uzu/helpers/tuple.hpp"
 
 namespace uzu {
 namespace impl {
@@ -28,46 +29,6 @@ struct node_entry {
 
   Node *target;
 };
-
-/// @brief One element of a `pack`: a value, tagged with its position so that two elements of the
-/// same type are still two different bases.
-template <std::size_t I, class T>
-struct leaf {
-  T value;
-};
-
-template <class Indices, class... Ts>
-struct pack_base;
-
-template <std::size_t... Is, class... Ts>
-struct pack_base<std::index_sequence<Is...>, Ts...> : leaf<Is, Ts>... {
-  constexpr explicit pack_base(const Ts &...values) : leaf<Is, Ts>{values}... {
-  }
-};
-
-/// @brief A flat, fixed list of values: what `nodes` and `edges` hold, and the graph after them.
-///
-/// It replaces a `std::tuple`, which is what made a large graph slow to compile. A tuple is a
-/// recursion, one level per element, and every `std::get<I>` or `std::tuple_element_t<I>` walks
-/// it, so a graph that looked up each of its E edges in a tuple of E did E^2 work in the
-/// compiler; its constructors also check their constraints across the whole pack. Here every
-/// element is a direct base, built in one pack expansion, and the graph never looks one up by
-/// position: it expands its own type list and the indices in lockstep, `leaf<Is, Es>...`, so each
-/// element is reached by naming its base. On a pose graph of 5 edges per node, with GCC at -O3,
-/// that took a 128-node graph from 614 s to 242 s to compile, and a 64-node one from 90 s to 73 s;
-/// below 32 nodes the difference is within noise, since the cost it removes is the one that
-/// grows with the square of the graph.
-template <class... Ts>
-struct pack : pack_base<std::index_sequence_for<Ts...>, Ts...> {
-  using pack_base<std::index_sequence_for<Ts...>, Ts...>::pack_base;
-};
-
-/// @brief The element at @p I, found by naming its base. Deducing `T` from the base is a lookup
-/// the compiler does directly, without instantiating anything per element.
-template <std::size_t I, class T>
-constexpr auto element(const leaf<I, T> &l) -> const T & {
-  return l.value;
-}
 
 /// @brief An edge in the graph's edge list, over the keys it links.
 template <class Edge, std::size_t... Keys>
@@ -114,7 +75,7 @@ struct nodes {
   explicit constexpr nodes(Entries... es) : entries{es...} {
   }
 
-  impl::pack<Entries...> entries;
+  uzu::tuple<Entries...> entries;
 };
 
 template <class... Entries>
@@ -126,7 +87,7 @@ struct edges {
   explicit constexpr edges(Entries... es) : entries{es...} {
   }
 
-  impl::pack<Entries...> entries;
+  uzu::tuple<Entries...> entries;
 };
 
 template <class... Entries>

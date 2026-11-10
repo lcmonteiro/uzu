@@ -182,11 +182,11 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
     return node_by_key<Key>().template seed<layout::offset_of(Key)>();
   }
 
-  /// @brief The edge declared @p I-th, as @p Entry: reached by naming its base in the pack, so no
-  /// lookup is instantiated per edge.
+  /// @brief The edge declared @p I-th, as @p Entry. `uzu::get` finds it by its base in the
+  /// tuple, so no lookup is instantiated per edge.
   template <std::size_t I, class Entry>
   constexpr auto edge_at() const -> auto & {
-    return *static_cast<const impl::leaf<I, Entry> &>(edges_).value.target;
+    return *uzu::get<I>(edges_).target;
   }
 
   /// @brief The node declared under @p Key.
@@ -198,7 +198,7 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   /// @brief The node declared @p I-th.
   template <std::size_t I>
   constexpr auto node_at() const -> auto & {
-    return *impl::element<I>(nodes_).target;
+    return *uzu::get<I>(nodes_).target;
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -250,8 +250,8 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   }
 
   algorithm_type algorithm_;
-  impl::pack<Ns...> nodes_;
-  impl::pack<Es...> edges_;
+  uzu::tuple<Ns...> nodes_;
+  uzu::tuple<Es...> edges_;
 };
 
 template <class Algorithm, class... Ns, class... Es>
