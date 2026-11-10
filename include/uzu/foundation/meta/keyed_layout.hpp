@@ -43,7 +43,16 @@ struct keyed_layout {
   static constexpr std::array<std::size_t, size> widths{Entries::width...};
 
   /// @brief How many indices the whole layout spans: every block, and nothing between them.
-  static constexpr std::size_t width = (Entries::width + ... + 0);
+  ///
+  /// Summed over `widths` rather than folded over the pack: a fold nests as deep as there are
+  /// entries, and clang refuses past 256.
+  static constexpr std::size_t width = [] {
+    std::size_t sum = 0;
+    for (const std::size_t w : widths) {
+      sum += w;
+    }
+    return sum;
+  }();
 
   /// @brief The entry at position @p I.
   template <std::size_t I>

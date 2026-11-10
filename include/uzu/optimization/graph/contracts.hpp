@@ -36,8 +36,20 @@ constexpr auto resolves(const std::array<std::size_t, N> &linked) -> bool {
 ///
 /// @tparam Layout The node layout, a `meta::keyed_layout`.
 /// @tparam Edges The edge entries, each carrying the `keys` it links.
+///
+/// Collected into an array and scanned, rather than folded: a fold over the edges expands into
+/// an expression nested as deep as there are edges, and clang refuses one past 256 deep - so a
+/// graph of 257 edges would not compile at all. An initializer list is flat at any length.
 template <class Layout, class... Edges>
-inline constexpr bool edges_resolve = (true && ... && resolves<Layout>(Edges::keys));
+inline constexpr bool edges_resolve = [] {
+  const std::array<bool, sizeof...(Edges)> each{resolves<Layout>(Edges::keys)...};
+  for (const bool resolved : each) {
+    if (!resolved) {
+      return false;
+    }
+  }
+  return true;
+}();
 
 }  // namespace impl
 }  // namespace uzu
