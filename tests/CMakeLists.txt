@@ -13,6 +13,9 @@ set(UZU_COMPILE_TIME_TESTS
   graph_algorithm_test.cpp
   graph_contracts_test.cpp
   graph_enable_test.cpp
+  graph_many_edges_test.cpp
+  tuple_test.cpp
+  ranges_test.cpp
   keyed_layout_test.cpp
   dual_derivatives_test.cpp
   keywords_test.cpp

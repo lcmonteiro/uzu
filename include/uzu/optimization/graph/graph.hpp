@@ -66,14 +66,6 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   static_assert(layout::distinct_keys, "two nodes are declared under the same key");
   static_assert(impl::edges_resolve<layout, Es...>, "an edge links a key no node declares");
 
-  /// @brief The entry of the edge declared @p I-th: its type and the keys it links.
-  template <std::size_t I>
-  using edge_entry_at = std::tuple_element_t<I, std::tuple<Es...>>;
-
-  /// @brief The @p J-th key that the edge declared @p I-th links.
-  template <std::size_t I, std::size_t J>
-  static constexpr std::size_t edge_key = edge_entry_at<I>::keys[J];
-
  public:
   using value_type = double;
 
@@ -133,7 +125,8 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   template <std::size_t... Is>
   constexpr auto total_error(std::index_sequence<Is...>) const {
     auto total = dual::zero<value_type, width>();
-    (add_edge_error<Is>(total), ...);
+    [[maybe_unused]] const std::array<int, sizeof...(Is)> in_order{
+        (add_edge_error<Is, Es>(total), 0)...};
     return total;
   }
 
@@ -142,10 +135,10 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   ///
   /// Added in place, so only the indices the edge carries are touched: an edge costs what it
   /// links, not what the whole graph spans.
-  template <std::size_t I, class Total>
+  template <std::size_t I, class Entry, class Total>
   constexpr auto add_edge_error(Total &total) const -> void {
-    if (edge_at<I>().enabled()) {
-      total += edge_error<I>();
+    if (edge_at<I, Entry>().enabled()) {
+      total += edge_error<I, Entry>();
     }
   }
 
@@ -155,14 +148,14 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   /// The residual is zipped against the sigmas and summed with the library's
   /// own summation, so the shape here is the same one the bezier fit uses -
   /// a fold over paired sequences rather than an index-driven loop.
-  template <std::size_t I>
+  template <std::size_t I, class Entry>
   constexpr auto edge_error() const {
-    using entry = edge_entry_at<I>;
-    const auto &edge = edge_at<I>();
+    using entry = Entry;
+    const auto &edge = edge_at<I, Entry>();
 
     const auto residuals = dual::apply(
         [&](const auto &...inputs) { return edge.error(inputs...); },
-        edge_inputs<I>(std::make_index_sequence<entry::arity>{}));
+        edge_inputs<Entry>(std::make_index_sequence<entry::arity>{}));
 
     static_assert(
         std::decay_t<decltype(residuals)>::size() == entry::target_type::dimension,
@@ -173,11 +166,11 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
         [](const auto &residual, const auto &sigma) { return kernel::radial(residual, sigma); });
   }
 
-  /// @brief What edge @p I is evaluated on: the estimate of each node it links, seeded as duals
-  /// at that node's block in the graph's index space.
-  template <std::size_t I, std::size_t... Js>
+  /// @brief What the edge entered as @p Entry is evaluated on: the estimate of each node it links,
+  /// seeded as duals at that node's block in the graph's index space.
+  template <class Entry, std::size_t... Js>
   constexpr auto edge_inputs(std::index_sequence<Js...>) const {
-    return std::tuple{seeded_node<edge_key<I, Js>>()...};
+    return std::tuple{seeded_node<Entry::keys[Js]>()...};
   }
 
   /// @brief The estimate of the node under @p Key, seeded as duals at that node's own block.
@@ -186,10 +179,11 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
     return node_by_key<Key>().template seed<layout::offset_of(Key)>();
   }
 
-  /// @brief The edge declared @p I-th.
-  template <std::size_t I>
+  /// @brief The edge declared @p I-th, as @p Entry. `uzu::get` finds it by its base in the
+  /// tuple, so no lookup is instantiated per edge.
+  template <std::size_t I, class Entry>
   constexpr auto edge_at() const -> auto & {
-    return *std::get<I>(edges_).target;
+    return *uzu::get<I>(edges_).target;
   }
 
   /// @brief The node declared under @p Key.
@@ -201,7 +195,7 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   /// @brief The node declared @p I-th.
   template <std::size_t I>
   constexpr auto node_at() const -> auto & {
-    return *std::get<I>(nodes_).target;
+    return *uzu::get<I>(nodes_).target;
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -221,7 +215,8 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   constexpr auto descend(std::index_sequence<Is...>) -> void {
     const auto total = total_error();
 
-    (update_node<Is>(total, std::make_index_sequence<layout::template entry_at<Is>::width>{}), ...);
+    [[maybe_unused]] const std::array<int, sizeof...(Is)> in_order{
+        (update_node<Is, Ns>(total, std::make_index_sequence<Ns::width>{}), 0)...};
   }
 
   /// @brief Steps node @p I along its own slice of the total error's derivatives.
@@ -238,9 +233,9 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   /// The kernel is pure, so the whole slope is normalised before the algorithm is called. The
   /// braced list then fixes the order the algorithm is called in: its elements are evaluated left
   /// to right, so within a node, too, the algorithm sees its indices in order.
-  template <std::size_t I, class Total, std::size_t... Ks>
+  template <std::size_t I, class Entry, class Total, std::size_t... Ks>
   constexpr auto update_node(const Total &total, std::index_sequence<Ks...>) -> void {
-    using entry = typename layout::template entry_at<I>;
+    using entry = Entry;
     constexpr auto offset = layout::offset_of(entry::key);
     auto &node = node_at<I>();
     if (node.enabled()) {
@@ -251,8 +246,8 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   }
 
   algorithm_type algorithm_;
-  std::tuple<Ns...> nodes_;
-  std::tuple<Es...> edges_;
+  uzu::tuple<Ns...> nodes_;
+  uzu::tuple<Es...> edges_;
 };
 
 template <class Algorithm, class... Ns, class... Es>

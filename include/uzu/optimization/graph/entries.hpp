@@ -12,7 +12,8 @@
 
 #include <array>
 #include <cstddef>
-#include <tuple>
+
+#include "uzu/helpers/tuple.hpp"
 
 namespace uzu {
 namespace impl {
@@ -74,7 +75,7 @@ struct nodes {
   explicit constexpr nodes(Entries... es) : entries{es...} {
   }
 
-  std::tuple<Entries...> entries;
+  uzu::tuple<Entries...> entries;
 };
 
 template <class... Entries>
@@ -86,7 +87,7 @@ struct edges {
   explicit constexpr edges(Entries... es) : entries{es...} {
   }
 
-  std::tuple<Entries...> entries;
+  uzu::tuple<Entries...> entries;
 };
 
 template <class... Entries>
