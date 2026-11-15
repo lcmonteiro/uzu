@@ -24,6 +24,7 @@ set(UZU_COMPILE_TIME_TESTS
 set(UZU_RUNTIME_TESTS
   dual_test.cpp
   dual_array_test.cpp
+  dual_pow_test.cpp
   optimization_trajectory_test.cpp)
 
 # A thousand passes over a four-pose chain runs past the budget the others need, so this one asks
