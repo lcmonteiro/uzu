@@ -7,6 +7,9 @@
 #ifndef UZU_FOUNDATION_DUAL_OPERATIONS_BASE_HPP
 #define UZU_FOUNDATION_DUAL_OPERATIONS_BASE_HPP
 
+#include <cstddef>
+#include <tuple>
+
 #include "uzu/foundation/dual/array.hpp"
 #include "uzu/foundation/dual/number.hpp"
 
@@ -289,7 +292,10 @@ struct transform_binary_operation {
     return static_cast<const Derived *>(this);
   }
 
-  /// @brief Helper for transforming each element of two arrays.
+  /// @brief Applies the operation to each pair of elements at the same position.
+  ///
+  /// The two operands must be the same length: an element-wise operation has no answer for an
+  /// element without a partner, so a mismatch is a compile error rather than a shorter result.
   /// @tparam T1 First array type.
   /// @tparam T2 Second array type.
   /// @tparam Is Index sequence.
@@ -298,6 +304,9 @@ struct transform_binary_operation {
   /// @return Transformed array.
   template <class T1, class T2, std::size_t... Is>
   constexpr auto transform(const T1 &c1, const T2 &c2, indices<Is...>) const {
+    static_assert(
+        std::tuple_size_v<T1> == std::tuple_size_v<T2>,
+        "element-wise operation on arrays of different lengths");
     return array{self()->transform(get<Is>(c1), get<Is>(c2))...};
   }
 };
