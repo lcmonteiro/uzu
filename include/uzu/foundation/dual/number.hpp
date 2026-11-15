@@ -39,11 +39,13 @@ struct number {
       : value_{value}, dvalues_{{((void)Dn, dvalue)...}} {
   }
 
-  /// @brief Converting constructor between compatible numbers.
-  /// @tparam Ds Parameter pack of the source number's derivative indices.
-  /// @param other The source number.
+  /// @brief Widens @p other to this number's indices: its value and its derivatives are copied,
+  /// and every index it does not carry reads zero - it does not depend on them.
+  ///
+  /// Each of @p other's indices must be one this number carries too, so nothing is ever dropped.
+  /// @tparam Ds The source number's derivative indices.
   template <std::size_t... Ds>
-  constexpr number(const number<T, Ds...> &other) : value_{other.value()} {
+  constexpr number(const number<T, Ds...> &other) : value_{other.value()}, dvalues_{} {
     (dvalue<Ds>(other.template dvalue<Ds>()), ...);
   }
 
