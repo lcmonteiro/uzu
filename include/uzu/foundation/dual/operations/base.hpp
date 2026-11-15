@@ -256,7 +256,7 @@ struct transform_unary_operation {
   /// @return Transformed array.
   template <class T, std::size_t... Is>
   constexpr auto transform(const T &c, indices<Is...>) const {
-    return array{self()->transform(std::get<Is>(c))...};
+    return array{self()->transform(get<Is>(c))...};
   }
 };
 
@@ -298,7 +298,7 @@ struct transform_binary_operation {
   /// @return Transformed array.
   template <class T1, class T2, std::size_t... Is>
   constexpr auto transform(const T1 &c1, const T2 &c2, indices<Is...>) const {
-    return array{self()->transform(std::get<Is>(c1), std::get<Is>(c2))...};
+    return array{self()->transform(get<Is>(c1), get<Is>(c2))...};
   }
 };
 
@@ -340,7 +340,7 @@ struct broadcast_operation {
   /// @return Result array after transformation.
   template <class... T1, class T2, std::size_t... Is>
   constexpr auto transform(const array<T1...> &c1, const T2 &c2, indices<Is...>) const {
-    return array{self()->transform(std::get<Is>(c1), c2)...};
+    return array{self()->transform(get<Is>(c1), c2)...};
   }
 
   /// @brief Helper for applying the operation across all elements of a scalar
@@ -353,7 +353,7 @@ struct broadcast_operation {
   /// @return Result array after transformation.
   template <class T1, class... T2, std::size_t... Is>
   constexpr auto transform(const T1 &c1, const array<T2...> &c2, indices<Is...>) const {
-    return array{self()->transform(c1, std::get<Is>(c2))...};
+    return array{self()->transform(c1, get<Is>(c2))...};
   }
 };
 

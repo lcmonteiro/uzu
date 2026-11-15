@@ -37,10 +37,10 @@ int main() {
   auto b = dual::make_array<0>(1.0, 2.0, 3.);
   auto a = std::array{1.0, 2.0, 4.0};
   auto n = dual::number<double, 3>{2.0};
-  auto d = std::cos(std::sin(std::log(std::exp(a / b + a))));
+  auto d = cos(sin(log(exp(a / b + a))));
   // Instantiated but not printed: the output of this program is compared byte for byte
   // against earlier runs, so what it prints stays fixed.
-  [[maybe_unused]] auto e = std::cos(std::sin(n)) * 4.0;
+  [[maybe_unused]] auto e = cos(sin(n)) * 4.0;
   auto f = dual::array(std::tie(n, n));
   // dual::product used to be the multiplicative twin of summation; in the
   // current library it is the cartesian product of containers, so fold the
@@ -49,8 +49,8 @@ int main() {
 
   [[maybe_unused]] auto h = dual::make_array<3>(a);
   dual::apply([](auto) {}, n);
-  dual::print(std::pow(b, 0.5));
-  dual::print(std::sqrt(b));
+  dual::print(pow(b, 0.5));
+  dual::print(sqrt(b));
   dual::print(d);
   dual::print(f);
   dual::print(g);
@@ -66,23 +66,23 @@ int main() {
   //	);
   //	print(d);
   /*
-  auto f = std::cos(
-         std::pow(
-           std::get<0>(d),
-           std::log(std::get<1>(d))) +
-         3.0 * std::exp(std::get<1>(d) - std::get<0>(d))) /
-       std::sin(std::get<2>(d));
+  auto f = cos(
+         pow(
+           get<0>(d),
+           log(get<1>(d))) +
+         3.0 * exp(get<1>(d) - get<0>(d))) /
+       sin(get<2>(d));
 
 
   number<0> x{2};
   number<1> y{3};
   number<2> z{5};
-  auto f = std::cos(
-         std::pow(
+  auto f = cos(
+         pow(
            x,
-           std::log(y)) +
-         3.0 * std::exp(y - x)) /
-       std::sin(z);
+           log(y)) +
+         3.0 * exp(y - x)) /
+       sin(z);
 
   std::cout << "f     = " << f.value() << std::endl;
   std::cout << "df/dx = " << f.dvalue<0>() << std::endl;

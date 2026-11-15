@@ -66,9 +66,10 @@ struct number {
     return *this;
   }
 
-  /// @brief Implicit conversion to the stored scalar value.
+  /// @brief Explicit conversion to the stored scalar value. Explicit so that a call such as
+  /// `std::sin(n)` is an error rather than a silent conversion that drops the derivatives.
   /// @return Constant reference to the stored value.
-  constexpr operator const T &() const {
+  constexpr explicit operator const T &() const {
     return value_;
   }
 

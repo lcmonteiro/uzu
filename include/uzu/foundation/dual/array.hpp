@@ -251,6 +251,36 @@ inline constexpr auto make_array(const T &init) {
   return make_array(indices_sequence_t<D, N>{}, init);
 }
 
+/// @brief Enables get<N>(array), found by ADL (const version).
+/// @tparam N Index.
+/// @tparam Ts Element types.
+/// @param a The dual::array instance.
+/// @return const reference to the N-th element.
+template <std::size_t N, typename... Ts>
+constexpr const auto &get(const dual::array<Ts...> &a) noexcept {
+  return std::get<N>(a.storage());
+}
+
+/// @brief Enables get<N>(array), found by ADL (non-const version).
+/// @tparam N Index.
+/// @tparam Ts Element types.
+/// @param a The dual::array instance.
+/// @return reference to the N-th element.
+template <std::size_t N, typename... Ts>
+constexpr auto &get(dual::array<Ts...> &a) noexcept {
+  return std::get<N>(a.storage());
+}
+
+/// @brief Enables get<N>(array), found by ADL (rvalue version).
+/// @tparam N Index.
+/// @tparam Ts Element types.
+/// @param a The dual::array instance (rvalue).
+/// @return rvalue reference to the N-th element.
+template <std::size_t N, typename... Ts>
+constexpr auto &&get(dual::array<Ts...> &&a) noexcept {
+  return std::get<N>(std::move(a.storage()));
+}
+
 }  // namespace dual
 
 namespace std {
@@ -266,37 +296,6 @@ template <std::size_t N, typename... Ts>
 struct tuple_element<N, dual::array<Ts...>> {
   using type = typename tuple_element<N, typename dual::array<Ts...>::storage_t>::type;
 };
-
-/// @brief Enables std::get<N>(dual::array<Ts...>) (const version).
-/// @tparam N Index.
-/// @tparam Ts Element types.
-/// @param a The dual::array instance.
-/// @return const reference to the N-th element.
-template <std::size_t N, typename... Ts>
-constexpr const auto &get(const dual::array<Ts...> &a) noexcept {
-  return std::get<N>(a.storage());
-}
-
-/// @brief Enables std::get<N>(dual::array<Ts...>) (non-const version).
-/// @tparam N Index.
-/// @tparam Ts Element types.
-/// @param a The dual::array instance.
-/// @return reference to the N-th element.
-template <std::size_t N, typename... Ts>
-constexpr auto &get(dual::array<Ts...> &a) noexcept {
-  return std::get<N>(a.storage());
-}
-
-/// @brief Enables std::get<N>(dual::array<Ts...>) (rvalue version).
-/// @tparam N Index.
-/// @tparam Ts Element types.
-/// @param a The dual::array instance (rvalue).
-/// @return rvalue reference to the N-th element.
-template <std::size_t N, typename... Ts>
-constexpr auto &&get(dual::array<Ts...> &&a) noexcept {
-  return std::get<N>(std::move(a.storage()));
-}
-
 }  // namespace std
 
 #endif  // UZU_FOUNDATION_DUAL_ARRAY_HPP

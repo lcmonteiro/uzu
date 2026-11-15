@@ -29,21 +29,18 @@ int main() {
   auto b = dual::make_array<0, 3>(1.0);
   auto a = std::array{1.0, 2.0, 4.0};
   auto d = b + a;
-  auto f = std::cos(
-               std::pow(std::get<0>(d), std::log(std::get<1>(d))) +
-               3.0 * std::exp(std::get<1>(d) - std::get<0>(d))) /
-           std::sin(std::get<2>(d));
+  auto f = cos(pow(get<0>(d), log(get<1>(d))) + 3.0 * exp(get<1>(d) - get<0>(d))) / sin(get<2>(d));
   /*
 
     number<0> x{2};
     number<1> y{3};
     number<2> z{5};
-    auto f = std::cos(
-           std::pow(
+    auto f = cos(
+           pow(
              x,
-             std::log(y)) +
-           3.0 * std::exp(y - x)) /
-         std::sin(z);
+             log(y)) +
+           3.0 * exp(y - x)) /
+         sin(z);
   */
   std::cout << "f     = " << f.value() << std::endl;
   std::cout << "df/dx = " << f.dvalue<0>() << std::endl;

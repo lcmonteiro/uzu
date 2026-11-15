@@ -16,7 +16,7 @@
 namespace dual {
 /// @brief Functor for computing the natural logarithm and its derivative for
 /// dual numbers.
-struct log : unary_operation<log> {
+struct log_operation : unary_operation<log_operation> {
   /// @brief Computes the natural logarithm of a value.
   /// @tparam T The numeric type of the value.
   /// @param v The input value.
@@ -41,20 +41,14 @@ struct log : unary_operation<log> {
     return n.d / n.v;  // This handles n.v == 0 case naturally (produces inf)
   }
 };
-}  // namespace dual
-
-namespace std {
-/// @brief Overloads the standard log function for dual numbers.
+/// @brief `log` for dual numbers. Found by ADL: call it unqualified.
 /// @tparam T The numeric type.
 /// @param n The dual number.
 /// @return The natural logarithm of the dual number.
-template <dual::number_operand T>
+template <number_operand T>
 inline auto log(const T &n) {
-  return std::invoke(dual::log{}, n);
+  return std::invoke(log_operation{}, n);
 }
-}  // namespace std
-
-namespace dual {
 /// @brief Functor for element-wise logarithm transformation on dual arrays.
 struct log_transform : transform_unary_operation<log_transform> {
   /// @brief Applies the logarithm transformation to an array element.
@@ -63,20 +57,17 @@ struct log_transform : transform_unary_operation<log_transform> {
   /// @return The natural logarithm of the element.
   template <class T>
   auto transform(const T &n) const {
-    return std::log(n);
+    return log(n);
   }
 };
-}  // namespace dual
-
-namespace std {
-/// @brief Overloads the standard log function for arrays of dual numbers.
+/// @brief `log` for arrays of dual numbers. Found by ADL: call it unqualified.
 /// @tparam T The array type.
 /// @param n The array of dual numbers.
 /// @return An array of logarithms of the dual numbers.
-template <dual::array_operand T>
+template <array_operand T>
 inline auto log(const T &n) {
-  return std::invoke(dual::log_transform{}, n);
+  return std::invoke(log_transform{}, n);
 }
-}  // namespace std
+}  // namespace dual
 
 #endif  // UZU_FOUNDATION_DUAL_OPERATIONS_LOG_HPP

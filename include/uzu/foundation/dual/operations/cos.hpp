@@ -14,7 +14,7 @@
 
 namespace dual {
 /// @brief Functor for computing the cosine and its derivative for dual numbers.
-struct cos : unary_operation<cos> {
+struct cos_operation : unary_operation<cos_operation> {
   /// @brief Computes the cosine of a value.
   /// @tparam T The numeric type of the value.
   /// @param v The input value.
@@ -33,20 +33,14 @@ struct cos : unary_operation<cos> {
     return -std::sin(n.v) * n.d;
   }
 };
-}  // namespace dual
-
-namespace std {
-/// @brief Overloads the standard cos function for dual numbers.
+/// @brief `cos` for dual numbers. Found by ADL: call it unqualified.
 /// @tparam T The numeric type.
 /// @param n The dual number.
 /// @return The cosine of the dual number.
-template <dual::number_operand T>
+template <number_operand T>
 inline auto cos(const T &n) {
-  return std::invoke(dual::cos{}, n);
+  return std::invoke(cos_operation{}, n);
 }
-}  // namespace std
-
-namespace dual {
 /// @brief Functor for element-wise cosine transformation on dual arrays.
 struct cos_transform : transform_unary_operation<cos_transform> {
   /// @brief Applies the cosine transformation to an array element.
@@ -55,20 +49,17 @@ struct cos_transform : transform_unary_operation<cos_transform> {
   /// @return The cosine of the element.
   template <class T>
   auto transform(const T &n) const {
-    return std::cos(n);
+    return cos(n);
   }
 };
-}  // namespace dual
-
-namespace std {
-/// @brief Overloads the standard cos function for arrays of dual numbers.
+/// @brief `cos` for arrays of dual numbers. Found by ADL: call it unqualified.
 /// @tparam T The array type.
 /// @param n The array of dual numbers.
 /// @return An array of cosines of the dual numbers.
-template <dual::array_operand T>
+template <array_operand T>
 inline auto cos(const T &n) {
-  return std::invoke(dual::cos_transform{}, n);
+  return std::invoke(cos_transform{}, n);
 }
-}  // namespace std
+}  // namespace dual
 
 #endif  // UZU_FOUNDATION_DUAL_OPERATIONS_COS_HPP

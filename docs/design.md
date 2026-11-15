@@ -329,13 +329,15 @@ else has to include it by name:
 #include "uzu/foundation/dual/operations/sin.hpp"
 ```
 
-Leaving them out does not fail at the call site. `number` converts implicitly
-to `const double &`, so `std::sin` resolves to the ordinary one, takes the
-value, and hands back a plain `double` with no derivative attached. An edge
-collecting its residual into a `dual::array` is caught, because that
-`static_assert` rejects a `double` element - but one that folded its residual
-down to a scalar would have no such guard, and the fit would run against a
-derivative that was silently always zero.
+The math functions live in `dual`, not in `std` - adding overloads to `std` is undefined
+behaviour - so an edge calls them unqualified and argument-dependent lookup finds them:
+`sin(x)`, not `std::sin(x)`. Generic code that also has to accept a plain `double` says
+`using std::sin;` first.
+
+Getting it wrong is a compile error at the call site. `number` converts to its scalar only
+explicitly, so `std::sin(x)` on a dual has no viable overload, and a missing include leaves
+unqualified `sin(x)` with nothing to find either. Neither can quietly take the value and hand
+back a plain `double` with the derivatives dropped.
 
 ## What the fit does, per pass
 

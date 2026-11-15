@@ -19,7 +19,7 @@
 namespace dual {
 /// @brief Functor for computing the exponential function and its derivative for
 /// dual numbers.
-struct exp : unary_operation<exp> {
+struct exp_operation : unary_operation<exp_operation> {
   /// @brief Computes the exponential of a value.
   /// @tparam T The numeric type of the value.
   /// @param v The input value.
@@ -38,20 +38,14 @@ struct exp : unary_operation<exp> {
     return std::exp(n.v) * n.d;
   }
 };
-}  // namespace dual
-
-namespace std {
-/// @brief Overloads the standard exp function for dual numbers.
+/// @brief `exp` for dual numbers. Found by ADL: call it unqualified.
 /// @tparam T The numeric type.
 /// @param n The dual number.
 /// @return The exponential of the dual number.
-template <dual::number_operand T>
+template <number_operand T>
 inline auto exp(const T &n) {
-  return std::invoke(dual::exp{}, n);
+  return std::invoke(exp_operation{}, n);
 }
-}  // namespace std
-
-namespace dual {
 /// @brief Functor for element-wise exponential transformation on dual arrays.
 struct exp_transform : transform_unary_operation<exp_transform> {
   /// @brief Applies the exponential transformation to an array element.
@@ -60,20 +54,17 @@ struct exp_transform : transform_unary_operation<exp_transform> {
   /// @return The exponential of the element.
   template <class T>
   auto transform(const T &n) const {
-    return std::exp(n);
+    return exp(n);
   }
 };
-}  // namespace dual
-
-namespace std {
-/// @brief Overloads the standard exp function for arrays of dual numbers.
+/// @brief `exp` for arrays of dual numbers. Found by ADL: call it unqualified.
 /// @tparam T The array type.
 /// @param n The array of dual numbers.
 /// @return An array of exponentials of the dual numbers.
-template <dual::array_operand T>
+template <array_operand T>
 inline auto exp(const T &n) {
-  return std::invoke(dual::exp_transform{}, n);
+  return std::invoke(exp_transform{}, n);
 }
-}  // namespace std
+}  // namespace dual
 
 #endif  // UZU_FOUNDATION_DUAL_OPERATIONS_EXP_HPP

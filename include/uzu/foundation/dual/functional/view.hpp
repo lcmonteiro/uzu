@@ -22,7 +22,7 @@ namespace dual {
 /// unnamed rather than named and ignored.
 template <size_t... Is, class... Ts>
 constexpr auto view(indices<Is...>, array<Ts...> &data) {
-  return array(std::tie(std::get<Is>(data)...));
+  return array(std::tie(get<Is>(data)...));
 }
 
 /// @brief Creates a view of all elements in a dual::array.

@@ -15,7 +15,7 @@
 namespace dual {
 /// @brief Functor for computing square root and its derivative for dual
 /// numbers.
-struct sqrt : unary_operation<sqrt> {
+struct sqrt_operation : unary_operation<sqrt_operation> {
   /// @brief Computes the square root of a value.
   /// @tparam T The numeric type of the value.
   /// @param v The input value.
@@ -34,20 +34,14 @@ struct sqrt : unary_operation<sqrt> {
     return n.d / (static_cast<T>(2.0) * std::sqrt(n.v));
   }
 };
-}  // namespace dual
-
-namespace std {
-/// @brief Overloads the sqrt function for dual numbers.
+/// @brief `sqrt` for dual numbers. Found by ADL: call it unqualified.
 /// @tparam T The numeric type.
 /// @param n The dual number.
 /// @return The result of applying sqrt using dual arithmetic.
-template <dual::number_operand T>
+template <number_operand T>
 inline auto sqrt(const T &n) {
-  return std::invoke(dual::sqrt{}, n);
+  return std::invoke(sqrt_operation{}, n);
 }
-}  // namespace std
-
-namespace dual {
 /// @brief Functor for element-wise square root transformation on arrays.
 struct sqrt_transform : transform_unary_operation<sqrt_transform> {
   /// @brief Applies square root to an array element.
@@ -56,21 +50,18 @@ struct sqrt_transform : transform_unary_operation<sqrt_transform> {
   /// @return The square root of the element.
   template <class T>
   auto transform(const T &n) const {
-    return std::sqrt(n);
+    return sqrt(n);
   }
 };
-}  // namespace dual
-
-namespace std {
-/// @brief Overloads the sqrt function for arrays of dual numbers.
+/// @brief `sqrt` for arrays of dual numbers. Found by ADL: call it unqualified.
 /// @tparam T The array type.
 /// @param n The array of dual numbers.
 /// @return An array with each element as the square root of the original
 /// element.
-template <dual::array_operand T>
+template <array_operand T>
 inline auto sqrt(const T &n) {
-  return std::invoke(dual::sqrt_transform{}, n);
+  return std::invoke(sqrt_transform{}, n);
 }
-}  // namespace std
+}  // namespace dual
 
 #endif  // UZU_FOUNDATION_DUAL_OPERATIONS_SQRT_HPP

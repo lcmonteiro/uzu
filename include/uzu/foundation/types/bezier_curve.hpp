@@ -64,7 +64,7 @@ constexpr auto dvalue(const number<T, Dn...> &n, T lr) {
 
 template <class T>
 constexpr auto sigmoid(const T &n) {
-  return 1.0 / (1.0 + std::exp(-1.0 * n));
+  return 1.0 / (1.0 + exp(-1.0 * n));
 }
 
 // 5th-order Bézier curve
@@ -81,12 +81,12 @@ constexpr auto curve_line_value(const Number &t, const Vector &c) {
   const auto t2 = t1 * t0;
   const auto t3 = t2 * t0;
   const auto t4 = t3 * t0;
-  const auto v0 = u4 * std::get<0>(c);
-  const auto v1 = +5.0 * u3 * t0 * std::get<1>(c);
-  const auto v2 = 10.0 * u2 * t1 * std::get<2>(c);
-  const auto v3 = 10.0 * u1 * t2 * std::get<3>(c);
-  const auto v4 = +5.0 * u0 * t3 * std::get<4>(c);
-  const auto v5 = t4 * std::get<5>(c);
+  const auto v0 = u4 * get<0>(c);
+  const auto v1 = +5.0 * u3 * t0 * get<1>(c);
+  const auto v2 = 10.0 * u2 * t1 * get<2>(c);
+  const auto v3 = 10.0 * u1 * t2 * get<3>(c);
+  const auto v4 = +5.0 * u0 * t3 * get<4>(c);
+  const auto v5 = t4 * get<5>(c);
   return v0 + v1 + v2 + v3 + v4 + v5;
 }
 
@@ -100,11 +100,11 @@ constexpr auto curve_line_first_derivative(const Number &t, const Vector &c) {
   const auto t1 = t0 * t0;
   const auto t2 = t1 * t0;
   const auto t3 = t2 * t0;
-  const auto d0 = +5.0 * u3 * (std::get<1>(c) - std::get<0>(c));
-  const auto d1 = 20.0 * u2 * t0 * (std::get<2>(c) - std::get<1>(c));
-  const auto d2 = 30.0 * u1 * t1 * (std::get<3>(c) - std::get<2>(c));
-  const auto d3 = 20.0 * t2 * u0 * (std::get<4>(c) - std::get<3>(c));
-  const auto d4 = +5.0 * t3 * (std::get<5>(c) - std::get<4>(c));
+  const auto d0 = +5.0 * u3 * (get<1>(c) - get<0>(c));
+  const auto d1 = 20.0 * u2 * t0 * (get<2>(c) - get<1>(c));
+  const auto d2 = 30.0 * u1 * t1 * (get<3>(c) - get<2>(c));
+  const auto d3 = 20.0 * t2 * u0 * (get<4>(c) - get<3>(c));
+  const auto d4 = +5.0 * t3 * (get<5>(c) - get<4>(c));
   return d0 + d1 + d2 + d3 + d4;
 }
 
@@ -117,10 +117,10 @@ constexpr auto curve_line_second_derivative(const Number &t, const Vector &c) {
   const auto t1 = t0 * t0;
   const auto t2 = t1 * t0;
 
-  const auto d0 = 20.0 * u2 * (std::get<2>(c) - 2.0 * std::get<1>(c) + std::get<0>(c));
-  const auto d1 = 60.0 * u1 * t0 * (std::get<3>(c) - 2.0 * std::get<2>(c) + std::get<1>(c));
-  const auto d2 = 60.0 * u0 * t1 * (std::get<4>(c) - 2.0 * std::get<3>(c) + std::get<2>(c));
-  const auto d3 = 20.0 * t2 * (std::get<5>(c) - 2.0 * std::get<4>(c) + std::get<3>(c));
+  const auto d0 = 20.0 * u2 * (get<2>(c) - 2.0 * get<1>(c) + get<0>(c));
+  const auto d1 = 60.0 * u1 * t0 * (get<3>(c) - 2.0 * get<2>(c) + get<1>(c));
+  const auto d2 = 60.0 * u0 * t1 * (get<4>(c) - 2.0 * get<3>(c) + get<2>(c));
+  const auto d3 = 20.0 * t2 * (get<5>(c) - 2.0 * get<4>(c) + get<3>(c));
   return d0 + d1 + d2 + d3;
 }
 

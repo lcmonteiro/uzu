@@ -23,7 +23,8 @@ namespace details {
 /// @return A tuple containing the I-th element from each container.
 template <size_t I, class... Ts>
 constexpr auto zip(const Ts &...containers) {
-  return std::tie(std::get<I>(containers)...);
+  using std::get;  // std containers by name, dual::array by ADL
+  return std::tie(get<I>(containers)...);
 }
 }  // namespace details
 

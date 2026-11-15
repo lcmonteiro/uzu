@@ -14,7 +14,7 @@
 
 namespace dual {
 /// @brief Functor for computing sine and its derivative for dual numbers.
-struct sin : unary_operation<sin> {
+struct sin_operation : unary_operation<sin_operation> {
   /// @brief Computes the sine of a value.
   /// @tparam T The numeric type of the value.
   /// @param v The input value.
@@ -33,20 +33,14 @@ struct sin : unary_operation<sin> {
     return std::cos(n.v) * n.d;
   }
 };
-}  // namespace dual
-
-namespace std {
-/// @brief Overloads the sin function for dual numbers.
+/// @brief `sin` for dual numbers. Found by ADL: call it unqualified.
 /// @tparam T The numeric type.
 /// @param n The dual number.
 /// @return The result of applying sine using dual arithmetic.
-template <dual::number_operand T>
+template <number_operand T>
 inline auto sin(const T &n) {
-  return std::invoke(dual::sin{}, n);
+  return std::invoke(sin_operation{}, n);
 }
-}  // namespace std
-
-namespace dual {
 /// @brief Functor for element-wise sine transformation on arrays.
 struct sin_transform : transform_unary_operation<sin_transform> {
   /// @brief Applies sine to an array element.
@@ -55,20 +49,17 @@ struct sin_transform : transform_unary_operation<sin_transform> {
   /// @return The sine of the element.
   template <class T>
   auto transform(const T &n) const {
-    return std::sin(n);
+    return sin(n);
   }
 };
-}  // namespace dual
-
-namespace std {
-/// @brief Overloads the sin function for arrays of dual numbers.
+/// @brief `sin` for arrays of dual numbers. Found by ADL: call it unqualified.
 /// @tparam T The array type.
 /// @param n The array of dual numbers.
 /// @return An array with each element as the sine of the original element.
-template <dual::array_operand T>
+template <array_operand T>
 inline auto sin(const T &n) {
-  return std::invoke(dual::sin_transform{}, n);
+  return std::invoke(sin_transform{}, n);
 }
-}  // namespace std
+}  // namespace dual
 
 #endif  // UZU_FOUNDATION_DUAL_OPERATIONS_SIN_HPP

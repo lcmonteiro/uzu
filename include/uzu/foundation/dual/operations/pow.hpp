@@ -15,7 +15,7 @@
 namespace dual {
 /// @brief Binary functor for exponentiation and its derivatives for dual
 /// numbers.
-struct pow : binary_operation<pow> {
+struct pow_operation : binary_operation<pow_operation> {
   /// @brief Computes the exponentiation of two values.
   /// @tparam T Numeric type.
   /// @param v1 Base value.
@@ -58,23 +58,17 @@ struct pow : binary_operation<pow> {
     return v2 * std::pow(n1.v, v2 - 1) * n1.d;
   }
 };
-}  // namespace dual
-
-namespace std {
-/// @brief Overloads the pow function for dual numbers and scalars.
+/// @brief `pow` for dual numbers and scalars. Found by ADL: call it unqualified.
 /// @tparam T1 Base type.
 /// @tparam T2 Exponent type.
 /// @param n1 Base value.
 /// @param n2 Exponent value.
 /// @return Result of exponentiation using dual arithmetic.
 template <class T1, class T2>
-  requires dual::number_operands<T1, T2>
+  requires number_operands<T1, T2>
 inline auto pow(const T1 &n1, const T2 &n2) {
-  return std::invoke(dual::pow{}, n1, n2);
+  return std::invoke(pow_operation{}, n1, n2);
 }
-}  // namespace std
-
-namespace dual {
 /// @brief Functor for element-wise exponentiation transformation on arrays.
 struct pow_transform : transform_binary_operation<pow_transform> {
   /// @brief Applies exponentiation to each corresponding pair of elements.
@@ -85,26 +79,20 @@ struct pow_transform : transform_binary_operation<pow_transform> {
   /// @return Result of pow(n1, n2).
   template <class T1, class T2>
   auto transform(const T1 &n1, const T2 &n2) const {
-    return std::pow(n1, n2);
+    return pow(n1, n2);
   }
 };
-}  // namespace dual
-
-namespace std {
-/// @brief Overloads the pow function for element-wise array exponentiation.
+/// @brief `pow` for element-wise array exponentiation. Found by ADL: call it unqualified.
 /// @tparam T1 Array or element type.
 /// @tparam T2 Array or element type.
 /// @param n1 Array or element (base).
 /// @param n2 Array or element (exponent).
 /// @return Array with elements as pow(n1[i], n2[i]).
 template <class T1, class T2>
-  requires dual::array_operands<T1, T2>
+  requires array_operands<T1, T2>
 inline auto pow(const T1 &n1, const T2 &n2) {
-  return std::invoke(dual::pow_transform{}, n1, n2);
+  return std::invoke(pow_transform{}, n1, n2);
 }
-}  // namespace std
-
-namespace dual {
 /// @brief Functor for broadcasting exponentiation operation between arrays and
 /// scalars.
 struct pow_broadcast : broadcast_operation<pow_broadcast> {
@@ -116,24 +104,20 @@ struct pow_broadcast : broadcast_operation<pow_broadcast> {
   /// @return Result of pow(n1, n2).
   template <class T1, class T2>
   auto transform(const T1 &n1, const T2 &n2) const {
-    return std::pow(n1, n2);
+    return pow(n1, n2);
   }
 };
-}  // namespace dual
-
-namespace std {
-/// @brief Overloads the pow function for broadcasting exponentiation between
-/// arrays and scalars.
+/// @brief `pow` broadcast between an array and a scalar. Found by ADL: call it unqualified.
 /// @tparam T1 Array or scalar type (base).
 /// @tparam T2 Array or scalar type (exponent).
 /// @param c1 Array or scalar (base).
 /// @param c2 Array or scalar (exponent).
 /// @return Array with elements as pow(c1[i], c2) or pow(c1, c2[i]).
 template <class T1, class T2>
-  requires dual::broadcast_operands<T1, T2>
+  requires broadcast_operands<T1, T2>
 inline auto pow(const T1 &c1, const T2 &c2) {
-  return std::invoke(dual::pow_broadcast{}, c1, c2);
+  return std::invoke(pow_broadcast{}, c1, c2);
 }
-}  // namespace std
+}  // namespace dual
 
 #endif  // UZU_FOUNDATION_DUAL_OPERATIONS_POW_HPP

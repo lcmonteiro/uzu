@@ -69,12 +69,14 @@ Every header compiles standalone under GCC 13.3 and Clang 18.1.
 
 Moving the headers under one include root put every one of them in the build
 for the first time, under `-Wall -Wextra` and as a standalone translation unit.
-That surfaced four things, all fixed here:
+That surfaced four things, all fixed here (the first two rows came later, from review):
 
 | file | fix |
 | --- | --- |
 | `functional/view.hpp`, `functional/zip.hpp` | the index sequence is a deduction tag and is never read, so it is left unnamed rather than named and ignored (`-Wunused-parameter`) |
 | `array.hpp` | the copy constructor is declared alongside the user-declared copy assignment, which otherwise deprecates it (`-Wdeprecated-copy`). Behaviour is unchanged: move stays suppressed, as it already was |
+| `array.hpp`, `operations/{cos,exp,log,pow,sin,sqrt}.hpp` | `get<N>` for `dual::array` and the six math functions were overloads added to `namespace std`, which is undefined behaviour. They are free functions in `dual` now, found by ADL (`sin(n)`, `get<0>(a)`); the functors they call are renamed `sin_operation` etc. to free the names. `std::tuple_size` and `std::tuple_element` stay specialised in `std`, which is allowed |
+| `number.hpp` | the conversion to the scalar is `explicit`, so `std::sin(n)` is a compile error rather than a silent call to the scalar overload that drops the derivatives |
 | `types/bezier_curve_5.hpp` | `<algorithm>`, `<cmath>`, `<cstddef>`, `<limits>`, `<numeric>` and `<utility>` added — it used `std::abs`, `std::clamp`, `size_t`, `std::numeric_limits` and `std::index_sequence` without them |
 | `types/bezier_curve_5.hpp` | `iota<T, N>()` added. The header called it without ever declaring it; GCC rejects the non-dependent name outright, and Clang only accepted it because the member initializer was never instantiated. It is spelled the way `bezier_curve.hpp`, which this was extracted from, spells it |
 
