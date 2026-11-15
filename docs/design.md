@@ -295,6 +295,10 @@ a `std::array`, but it binds to a reference to a raw array and carries its
 length along. The constructors then pick their arguments out by tag, so order
 does not matter and a missing keyword falls back to a documented default.
 
+Each constructor names the keywords it takes and checks that it was given only those, each at
+most once: `gradient{beta = 0.9}` and `momentum{lr = 0.1, lr = 0.5}` are compile errors rather
+than a keyword quietly dropped.
+
 A keyword takes the type of that default rather than the one written at the
 call site, so `lr = 1` means `lr = 1.0`. Without that, the integer would reach
 a `double` member through a braced initialiser, which is a narrowing conversion
@@ -511,7 +515,8 @@ fit *looking* wrong. One file per property group, each built against
 - **A builder carries no state.** One `momentum{...}` handed to two graphs
   leaves the second starting from rest however hard the first was run - the
   property the builder-and-instance split exists to give.
-- Sigma broadcasting, and keyword order independence.
+- Sigma broadcasting, keyword order independence, and that a stray or repeated keyword is
+  rejected.
 - **A four-pose chain is recovered exactly**, started from a single point that
   every pose shares, so the fit has to separate them as well as place them -
   and recovered by the compiler, like everything above it.

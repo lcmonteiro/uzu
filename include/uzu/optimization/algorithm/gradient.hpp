@@ -30,6 +30,7 @@ class gradient {
   template <impl::keyword_argument... Args>
   explicit constexpr gradient(const Args &...args)
       : rate_{impl::find_one<impl::lr_tag>(value_type{0.1}, args...)} {
+    impl::keyword_set<impl::lr_tag>::check<Args...>();
   }
 
   /// @brief Nothing to size, so the instance is a copy of the builder.

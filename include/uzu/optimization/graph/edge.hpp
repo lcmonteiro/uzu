@@ -67,6 +67,7 @@ class edge {
   explicit constexpr edge(const Args &...args)
       : sigma_{impl::find_all<impl::sigma_tag>(filled(value_type{1}), args...)},
         measurement_{measured(args...)} {
+    impl::keyword_set<impl::init_tag, impl::sigma_tag>::check<Args...>();
   }
 
   /// @brief The sigmas, laid out one per residual and ready to be zipped against one.

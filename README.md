@@ -431,7 +431,7 @@ actually built.
 | [graph_contracts_test.cpp](tests/graph_contracts_test.cpp) | The edge contract on its own: an edge over an undeclared key is caught, and an empty edge list passes. |
 | [keyed_layout_test.cpp](tests/keyed_layout_test.cpp) | The generic layout: lookups, offsets, width, and a repeated key caught, with no graph involved. |
 | [dual_derivatives_test.cpp](tests/dual_derivatives_test.cpp) | `dual::zero` widens a sum to every index; `dual::derivatives` reads a full range or a slice back out. |
-| [keywords_test.cpp](tests/keywords_test.cpp) | Sigma broadcasting, and keyword order independence. |
+| [keywords_test.cpp](tests/keywords_test.cpp) | Sigma broadcasting, keyword order independence, and that a stray or repeated keyword is rejected. |
 | [trajectory_compile_time_test.cpp](tests/trajectory_compile_time_test.cpp) | A four-pose chain, started from one point, recovered exactly — by the compiler. |
 | [optimization_trajectory_test.cpp](tests/optimization_trajectory_test.cpp) | A noisy 12- and 24-pose trajectory with random initial guesses and loop closures, recovered to within vortex's own accuracy bound. The one test here that runs rather than compiles, and most of the suite's build time. |
 | [dual_pow_test.cpp](tests/dual_pow_test.cpp) | `pow` where the derivative formula multiplies zero by infinity: a zero base, a zero exponent, a negative base under a constant exponent. Run-time, because `std::pow` is. |

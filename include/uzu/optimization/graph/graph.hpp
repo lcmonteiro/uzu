@@ -78,9 +78,11 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   }
 
   /// @brief Runs the fit, in place. The step size belongs to the algorithm;
-  /// what is said here is only how many passes to take.
-  template <class... Args>
+  /// what is said here is only how many passes to take: `iterations`, which defaults to 10.
+  template <impl::keyword_argument... Args>
   constexpr auto fit(const Args &...args) -> void {
+    impl::keyword_set<impl::iterations_tag>::check<Args...>();
+
     const auto passes = impl::find_one<impl::iterations_tag>(10, args...);
 
     for (auto i = decltype(passes){0}; i < passes; ++i) {

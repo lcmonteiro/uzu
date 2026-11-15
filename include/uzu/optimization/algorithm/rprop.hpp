@@ -120,6 +120,7 @@ class rprop {
   template <impl::keyword_argument... Args>
   explicit constexpr rprop(const Args &...args)
       : initial_{impl::find_one<impl::lr_tag>(value_type{0.1}, args...)} {
+    impl::keyword_set<impl::lr_tag>::check<Args...>();
   }
 
   /// @brief An instance at rest: every step at its initial size, no sign seen yet.

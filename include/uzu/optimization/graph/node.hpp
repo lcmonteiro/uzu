@@ -61,6 +61,7 @@ class node {
   explicit constexpr node(const Args &...args)
       : estimation_{impl::find<impl::init_tag>(estimation_type{}, args...)},
         sigma_{impl::find_all<impl::sigma_tag>(filled(value_type{1}), args...)} {
+    impl::keyword_set<impl::init_tag, impl::sigma_tag>::check<Args...>();
   }
 
   /// @brief The current estimate.
