@@ -1,7 +1,8 @@
 /// ===============================================================================================
 /// @file
 ///
-/// @brief The graph's contracts: edges that link only keys the node layout declares.
+/// @brief The graph's contracts: edges that link only keys the node layout declares, and node
+/// and edge bases that exist only as part of a derived class.
 ///
 /// The failing side cannot be shown through `graph` itself - a translation unit that links an
 /// undeclared key does not compile - so the predicate is asserted here directly, both ways round.
@@ -12,7 +13,9 @@
 
 #include <array>
 #include <cstddef>
+#include <type_traits>
 
+#include "tests/fixtures/simple_graph.hpp"
 #include "tests/helpers/compile_time.hpp"
 #include "uzu/foundation/meta/keyed_layout.hpp"
 #include "uzu/optimization/graph/contracts.hpp"
@@ -41,6 +44,22 @@ static_assert(
     !uzu::impl::edges_resolve<declared, edge_stub<4>, edge_stub<7, 5>>,
     "one undeclared key in any edge fails");
 static_assert(uzu::impl::edges_resolve<declared>, "no edges resolve trivially");
+
+// ---------------------------------------------------------------------------------------------
+// The bases are only ever part of a derived node or edge.
+// ---------------------------------------------------------------------------------------------
+
+using node_base = uzu::test::point2::base;
+using edge_base = uzu::test::absolute::base;
+
+static_assert(!std::is_destructible_v<node_base>, "a node base cannot stand on its own");
+static_assert(!std::is_destructible_v<edge_base>, "nor an edge base");
+static_assert(!std::is_copy_constructible_v<node_base>, "nor be copied out of a node");
+static_assert(!std::is_copy_constructible_v<edge_base>, "nor out of an edge");
+
+static_assert(std::is_destructible_v<uzu::test::point2>, "a derived node can");
+static_assert(std::is_trivially_copyable_v<uzu::test::point2>, "and copies as plainly as before");
+static_assert(std::is_trivially_copyable_v<uzu::test::absolute>, "an edge too");
 
 }  // namespace
 

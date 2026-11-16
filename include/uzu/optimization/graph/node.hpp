@@ -111,6 +111,19 @@ class node {
     enabled_ = false;
   }
 
+ protected:
+  /// @brief Copied, moved and destroyed only as part of the derived class.
+  ///
+  /// Protected rather than public so that the base cannot be made, copied or destroyed on its
+  /// own - which would slice a derived node down to it (C.35, C.67). The constructors stay public:
+  /// a derived class takes them with `using base::base;`, and an inherited constructor keeps the
+  /// base's access, so a protected one would make every derived node unconstructible.
+  constexpr node(const node &) = default;
+  constexpr node(node &&) = default;
+  constexpr auto operator=(const node &) -> node & = default;
+  constexpr auto operator=(node &&) -> node & = default;
+  constexpr ~node() = default;
+
  private:
   /// @brief A delta with every dimension set to the same value.
   static constexpr auto filled(value_type value) -> point {
