@@ -42,16 +42,6 @@ struct array {
   /// @brief Default constructor.
   array() = default;
 
-  /// @brief Copy is the tuple's, and both halves of it are spelled out.
-  ///
-  /// Declaring the assignment alone leaves the copy *constructor* implicit, and an implicit copy
-  /// constructor alongside a user-declared assignment is deprecated. Naming both keeps the
-  /// behaviour identical and the header warning-free. Move stays suppressed by the user-declared
-  /// copy, as it already was: every element is a trivially copyable `number`, so there is nothing
-  /// a move would do differently.
-  array(const array &) = default;
-  array &operator=(const array &) = default;
-
   /// @brief Constructs array from a parameter pack of number<T, S> values.
   /// @param init Parameter pack of number<T, S> values.
   constexpr explicit array(const Ts &...init) : storage_{init...} {

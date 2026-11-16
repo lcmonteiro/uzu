@@ -74,7 +74,7 @@ That surfaced four things, all fixed here (the first seven rows came later, from
 | file | fix |
 | --- | --- |
 | `functional/view.hpp`, `functional/zip.hpp` | the index sequence is a deduction tag and is never read, so it is left unnamed rather than named and ignored (`-Wunused-parameter`) |
-| `array.hpp` | the copy constructor is declared alongside the user-declared copy assignment, which otherwise deprecates it (`-Wdeprecated-copy`). Behaviour is unchanged: move stays suppressed, as it already was |
+| `array.hpp` | the copy assignment upstream declares is removed, along with the copy constructor once added here to keep it warning-free. Neither was needed - a template `operator=` is never the copy assignment - and with both gone the array copies and moves implicitly, as its trivially copyable numbers do |
 | `array.hpp`, `operations/{cos,exp,log,pow,sin,sqrt}.hpp` | `get<N>` for `dual::array` and the six math functions were overloads added to `namespace std`, which is undefined behaviour. They are free functions in `dual` now, found by ADL (`sin(n)`, `get<0>(a)`); the functors they call are renamed `sin_operation` etc. to free the names. `std::tuple_size` and `std::tuple_element` stay specialised in `std`, which is allowed |
 | `number.hpp` | the conversion to the scalar is `explicit`, so `std::sin(n)` is a compile error rather than a silent call to the scalar overload that drops the derivatives |
 | `operations/base.hpp` | an element-wise operation on arrays of different lengths is a `static_assert`; it used to truncate to the second operand's length |

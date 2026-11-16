@@ -549,8 +549,8 @@ fit *looking* wrong. One file per property group, each built against
 
 The build is warning-free under `-Wall -Wextra` on both GCC and Clang. Two of
 those warnings were pre-existing in the vendored duals - an unused index-tag
-parameter in `functional/zip.hpp` and `functional/view.hpp`, and an implicit
-copy constructor alongside a user-declared assignment in `array.hpp` - and are
+parameter in `functional/zip.hpp` and `functional/view.hpp`, and a needless
+user-declared copy assignment in `array.hpp`, now removed - and are
 fixed here rather than carried, now that the duals live in this repository's
 own include tree instead of as a one-file diff against a snapshot. See
 [dual-snapshot.md](dual-snapshot.md) for what else has drifted from upstream.

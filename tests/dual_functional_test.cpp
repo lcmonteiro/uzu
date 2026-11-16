@@ -9,6 +9,7 @@
 #include <array>
 #include <cstddef>
 #include <tuple>
+#include <type_traits>
 
 #include "tests/helpers/compile_time.hpp"
 #include "uzu/foundation/dual/array.hpp"
@@ -69,6 +70,18 @@ constexpr auto folded =
 static_assert(folded.value() == 9.0, "(1 + 2) * 3");
 static_assert(folded.dvalue<0>() == 3.0 && folded.dvalue<1>() == 3.0, "d/da_i is b");
 static_assert(folded.dvalue<2>() == 3.0, "d/db is a0 + a1");
+
+// ---------------------------------------------------------------------------------------------
+// An array copies and moves implicitly. It is not trivially copyable - its std::tuple storage is
+// not - but nothing it declares stands in the way of either.
+// ---------------------------------------------------------------------------------------------
+
+using pair_type = std::remove_const_t<decltype(a)>;
+
+static_assert(std::is_copy_constructible_v<pair_type>, "copied");
+static_assert(std::is_copy_assignable_v<pair_type>, "both ways");
+static_assert(std::is_nothrow_move_constructible_v<pair_type>, "and moved");
+static_assert(std::is_nothrow_move_assignable_v<pair_type>, "both ways");
 
 // ---------------------------------------------------------------------------------------------
 // transform.
