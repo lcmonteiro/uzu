@@ -5,11 +5,23 @@
 # assertion in tests/ is a static_assert -- so a compile failure in the build step is a failed
 # property, and the ctest step confirms each binary was actually produced and ran.
 #
-# The two compilers spell the constant-evaluation budget differently
+# Two jobs:
+#
+#   format   every tracked C++ file matches .clang-format, checked with the clang-format the
+#            repository is formatted with, so a newer one's opinions are not a failure
+#   build    on each compiler, in two configurations, both with warnings as errors:
+#              release   Release, with the benchmarks built so they cannot rot
+#              sanitize  Debug, with AddressSanitizer and UndefinedBehaviorSanitizer on the
+#                        tests that run
+#
+# The builds run on both compilers, which spell the constant-evaluation budget differently
 # (-fconstexpr-ops-limit vs -fconstexpr-steps); CMakeLists.txt picks per compiler, and running
 # both is what keeps that from silently rotting. MSVC is not in the matrix: it needs
 # /constexpr:steps and has not been tried against these fits, so it is left to someone who can
 # iterate on a real Windows toolchain rather than guessed at a CI round trip at a time.
+#
+# The runner is pinned, not ubuntu-latest, so that the compilers and clang-format it ships do not
+# change under the repository between one push and the next.
 name: CMake on multiple platforms
 
 on:
@@ -18,25 +30,50 @@ on:
   pull_request:
     branches: [ "main" ]
 
+# A newer push to the same branch or pull request makes the run for the older one moot.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  format:
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install clang-format 18
+      run: sudo apt-get update && sudo apt-get install -y clang-format-18
+
+    - name: Check formatting
+      # --Werror turns each difference into a failure; the diff it would make is in the log.
+      run: git ls-files '*.hpp' '*.cpp' '*.h' | xargs clang-format-18 --dry-run --Werror
+
   build:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-24.04
 
     strategy:
       # Feedback for every combination, not just the first that breaks.
       fail-fast: false
 
       matrix:
-        os: [ubuntu-latest]
-        build_type: [Release]
-        c_compiler: [gcc, clang]
+        compiler: [gcc, clang]
+        config: [release, sanitize]
         include:
-          - os: ubuntu-latest
+          - compiler: gcc
             c_compiler: gcc
             cpp_compiler: g++
-          - os: ubuntu-latest
+          - compiler: clang
             c_compiler: clang
             cpp_compiler: clang++
+          - config: release
+            build_type: Release
+            options: -DUZU_WARNINGS_AS_ERRORS=ON -DUZU_BUILD_BENCHMARKS=ON
+          - config: sanitize
+            build_type: Debug
+            options: -DUZU_WARNINGS_AS_ERRORS=ON -DUZU_SANITIZE=ON
+
+    name: build (${{ matrix.compiler }}, ${{ matrix.config }})
 
     steps:
     - uses: actions/checkout@v4
@@ -53,21 +90,22 @@ jobs:
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        ${{ matrix.options }}
         -S ${{ github.workspace }}
 
     - name: Build
-      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }} --parallel
 
     - name: Test
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
       # --output-on-failure prints each failing test's full stdout/stderr in the Actions log, so a
-      # failure is debuggable from the CI output alone.
+      # failure - a sanitizer report included - is debuggable from the CI output alone.
       run: ctest --build-config ${{ matrix.build_type }} --output-on-failure
 
     - name: Upload test log on failure
       if: failure()
       uses: actions/upload-artifact@v4
       with:
-        name: ctest-log-${{ matrix.os }}-${{ matrix.c_compiler }}
+        name: ctest-log-${{ matrix.compiler }}-${{ matrix.config }}
         path: ${{ steps.strings.outputs.build-output-dir }}/Testing/Temporary/LastTest.log
         if-no-files-found: ignore

@@ -264,6 +264,22 @@ To use the headers without building the tests:
 cmake -S . -B build -DUZU_BUILD_TESTS=OFF
 ```
 
+CI builds each compiler two ways, and either can be reproduced locally:
+
+```bash
+# Release, any warning an error, benchmarks included
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DUZU_WARNINGS_AS_ERRORS=ON -DUZU_BUILD_BENCHMARKS=ON
+
+# Debug, the tests that run under AddressSanitizer and UndefinedBehaviorSanitizer
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DUZU_WARNINGS_AS_ERRORS=ON -DUZU_SANITIZE=ON
+```
+
+It also checks every C++ file against `.clang-format` with clang-format 18:
+
+```bash
+git ls-files '*.hpp' '*.cpp' '*.h' | xargs clang-format-18 --dry-run --Werror
+```
+
 ### Use it in your project
 
 The library exports the target `uzu::uzu`:

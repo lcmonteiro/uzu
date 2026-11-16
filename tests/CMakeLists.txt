@@ -46,6 +46,7 @@ foreach(source IN LISTS UZU_COMPILE_TIME_TESTS UZU_RUNTIME_TESTS)
   # the same spelling the README uses.
   target_include_directories(${target} PRIVATE ${CMAKE_SOURCE_DIR})
   uzu_warnings(${target})
+  uzu_sanitize(${target})
 
   if(${source} IN_LIST UZU_LARGE_BUDGET_TESTS)
     uzu_constexpr_budget(${target} ${UZU_LARGE_BUDGET})
