@@ -43,8 +43,8 @@ struct array {
   array() = default;
 
   /// @brief Constructs array from a parameter pack of number<T, S> values.
-  /// @param init Parameter pack of number<T, S> values.
-  constexpr explicit array(const Ts &...init) : storage_{init...} {
+  /// @param values Parameter pack of number<T, S> values.
+  constexpr explicit array(const Ts &...values) : storage_{values...} {
   }
 
   /// @brief Constructs an array from a tuple of number<T, S> elements.
@@ -54,37 +54,37 @@ struct array {
 
   /// @brief Constructs array from a std::array of values.
   /// @tparam U Element type of the input array.
-  /// @param init std::array of values to initialize the number<T, S> values.
+  /// @param values std::array of values to initialize the number<T, S> values.
   template <class U>
-  constexpr explicit array(const std::array<U, sizeof...(Ts)> &init) {
-    update(init, indices_sequence_for_t<0, Ts...>{});
+  constexpr explicit array(const std::array<U, sizeof...(Ts)> &values) {
+    update(values, indices_sequence_for_t<0, Ts...>{});
   }
 
   /// @brief Constructs array from another dual::array.
   /// @tparam Us Types in the source array.
-  /// @param init Source array.
+  /// @param values Source array.
   template <class... Us>
-  constexpr explicit array(const array<Us...> &init) {
-    update(init, indices_sequence_for_t<0, Ts...>{});
+  constexpr explicit array(const array<Us...> &values) {
+    update(values, indices_sequence_for_t<0, Ts...>{});
   }
 
   /// @brief Assigns values from a std::array.
   /// @tparam U Element type.
-  /// @param init std::array to assign.
+  /// @param values std::array to assign.
   /// @return Reference to this array.
   template <class U>
-  array &operator=(const std::array<U, sizeof...(Ts)> &init) {
-    update(init, indices_sequence_for_t<0, Ts...>{});
+  array &operator=(const std::array<U, sizeof...(Ts)> &values) {
+    update(values, indices_sequence_for_t<0, Ts...>{});
     return *this;
   }
 
   /// @brief Assigns values from another dual::array.
   /// @tparam Us Types in the source array.
-  /// @param init Source array.
+  /// @param values Source array.
   /// @return Reference to this array.
   template <class... Us>
-  array &operator=(const array<Us...> &init) {
-    update(init, indices_sequence_for_t<0, Ts...>{});
+  array &operator=(const array<Us...> &values) {
+    update(values, indices_sequence_for_t<0, Ts...>{});
     return *this;
   }
 
@@ -186,48 +186,48 @@ constexpr bool is_array_like_v = impl::is_array_like<T>::value;
 /// @brief Constructs a dual::array from a value and dimension index pack.
 /// @tparam Ds Dimension indices.
 /// @tparam T Scalar type.
-/// @param init The initial value for each number<T, Ds>.
+/// @param value The initial value for each number<T, Ds>.
 template <std::size_t... Ds, class T>
-inline constexpr auto make_array(indices<Ds...>, const T &init) {
-  return array{number<T, Ds>(init)...};
+inline constexpr auto make_array(indices<Ds...>, const T &value) {
+  return array{number<T, Ds>(value)...};
 }
 
 /// @brief Constructs a dual::array from a std::array and dimension index pack.
 /// @tparam Ds Dimension indices.
 /// @tparam T Scalar type.
 /// @tparam N Number of elements.
-/// @param init std::array of initial values.
+/// @param values std::array of initial values.
 template <std::size_t... Ds, class T, std::size_t N>
-inline constexpr auto make_array(indices<Ds...>, const std::array<T, N> &init) {
-  return array<number<T, Ds>...>{init};
+inline constexpr auto make_array(indices<Ds...>, const std::array<T, N> &values) {
+  return array<number<T, Ds>...>{values};
 }
 
 /// @brief Constructs a dual::array from a value pack and dimension index pack.
 /// @tparam Ds Dimension indices.
 /// @tparam Ts Value types corresponding to each dimension.
-/// @param init The values to initialize each number<T, Ds>.
+/// @param values The values to initialize each number<T, Ds>.
 template <std::size_t... Ds, class... Ts>
-inline constexpr auto make_array(indices<Ds...>, const Ts &...init) {
-  return array{number<Ts, Ds>{init}...};
+inline constexpr auto make_array(indices<Ds...>, const Ts &...values) {
+  return array{number<Ts, Ds>{values}...};
 }
 
 /// @brief Constructs a dual::array from a dimension and a std::array.
 /// @tparam D Starting dimension index.
 /// @tparam T Value type.
 /// @tparam N Number of elements.
-/// @param init std::array of initial values.
+/// @param values std::array of initial values.
 template <std::size_t D, class T, std::size_t N>
-inline constexpr auto make_array(const std::array<T, N> &init) {
-  return make_array(indices_sequence_t<D, N>{}, init);
+inline constexpr auto make_array(const std::array<T, N> &values) {
+  return make_array(indices_sequence_t<D, N>{}, values);
 }
 
 /// @brief Constructs a dual::array from a dimension and a value pack.
 /// @tparam D Starting dimension index.
 /// @tparam Ts Value types.
-/// @param init The values to initialize each number<T, D + i>.
+/// @param values The values to initialize each number<T, D + i>.
 template <std::size_t D, class... Ts>
-inline constexpr auto make_array(const Ts &...init) {
-  return make_array(indices_sequence_for_t<D, Ts...>{}, init...);
+inline constexpr auto make_array(const Ts &...values) {
+  return make_array(indices_sequence_for_t<D, Ts...>{}, values...);
 }
 
 /// @brief Constructs a dual::array of N number<T, D + i> initialized with the
@@ -235,10 +235,10 @@ inline constexpr auto make_array(const Ts &...init) {
 /// @tparam D Starting dimension.
 /// @tparam N Number of elements.
 /// @tparam T Value type.
-/// @param init The value to initialize each element.
+/// @param value The value to initialize each element.
 template <std::size_t D, std::size_t N, class T>
-inline constexpr auto make_array(const T &init) {
-  return make_array(indices_sequence_t<D, N>{}, init);
+inline constexpr auto make_array(const T &value) {
+  return make_array(indices_sequence_t<D, N>{}, value);
 }
 
 /// @brief Enables get<N>(array), found by ADL (const version).

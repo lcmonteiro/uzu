@@ -33,7 +33,7 @@
 /// constexpr auto build() const -> instance<Width>;  // on the builder
 ///
 /// template <std::size_t Index>
-/// value_type step(value_type gradient);             // on the instance
+/// value_type step(value_type slope);                // on the instance
 /// ```
 ///
 /// The split is invisible at the call site - `momentum{lr = 0.01, beta = 0.9}` is still what gets

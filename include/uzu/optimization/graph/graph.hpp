@@ -165,7 +165,7 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
 
     return dual::summation(
         dual::zip(residuals, edge.sigma()),
-        [](const auto &residual, const auto &sigma) { return kernel::radial(residual, sigma); });
+        [](const auto &residual, const auto &scale) { return kernel::radial(residual, scale); });
   }
 
   /// @brief What the edge entered as @p Entry is evaluated on: the estimate of each node it links,

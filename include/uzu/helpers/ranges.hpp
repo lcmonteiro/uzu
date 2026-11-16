@@ -35,13 +35,13 @@ struct truthy {
 
 }  // namespace impl
 
-/// @brief @p init plus every element of @p range, added left to right.
+/// @brief @p total plus every element of @p range, added left to right.
 template <class Range, class T>
-constexpr auto accumulate(const Range &range, T init) -> T {
+constexpr auto accumulate(const Range &range, T total) -> T {
   for (const auto &value : range) {
-    init = std::move(init) + value;
+    total = std::move(total) + value;
   }
-  return init;
+  return total;
 }
 
 /// @brief Whether @p pred holds for at least one element of @p range. Stops at the first that

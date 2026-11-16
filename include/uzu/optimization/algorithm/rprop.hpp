@@ -83,13 +83,13 @@ class rprop {
 
     /// @brief The delta for index @p Index, from the sign of its bounded gradient.
     template <std::size_t Index>
-    constexpr auto step(value_type gradient) -> value_type {
+    constexpr auto step(value_type slope) -> value_type {
       static_assert(Index < Width, "index outside the graph this instance was built for");
 
       auto &size = step_[Index];
       auto &last = last_[Index];
 
-      const auto sign = gradient > zero ? one : gradient < zero ? -one : zero;
+      const auto sign = slope > zero ? one : slope < zero ? -one : zero;
       const auto sign_product = sign * last;
       if (sign_product < zero) {
         // Overshot: shrink the step and skip this iteration. The sign is forgotten too, so the

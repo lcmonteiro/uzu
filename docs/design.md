@@ -176,7 +176,7 @@ template <std::size_t Width>
 constexpr auto build() const -> instance<Width>;   // on the builder
 
 template <std::size_t Index>
-auto step(value_type gradient) -> value_type;      // on the instance
+auto step(value_type slope) -> value_type;         // on the instance
 ```
 
 An algorithm that keeps one value per dual index wants that state to be a
@@ -211,8 +211,8 @@ plain rule:
 
 ```cpp
 template <std::size_t Index>
-auto step(value_type gradient) -> value_type {
-  return -rate_ * gradient;
+auto step(value_type slope) -> value_type {
+  return -rate_ * slope;
 }
 ```
 

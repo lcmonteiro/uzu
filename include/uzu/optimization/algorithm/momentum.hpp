@@ -51,12 +51,12 @@ class momentum {
 
     /// @brief The delta for one bounded gradient component.
     template <std::size_t Index>
-    constexpr auto step(value_type gradient) -> value_type {
+    constexpr auto step(value_type slope) -> value_type {
       static_assert(Index < Width, "index outside the graph this instance was built for");
 
       auto &v = velocity_[Index];
 
-      v = decay_ * v + gradient;
+      v = decay_ * v + slope;
 
       return -rate_ * v;
     }

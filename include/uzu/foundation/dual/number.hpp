@@ -27,8 +27,8 @@ struct number {
   constexpr explicit number() = default;
 
   /// @brief Constructor initializing the scalar value.
-  /// @param init The initial value to store.
-  constexpr explicit number(const T &init) : value_{init} {
+  /// @param value The initial value to store.
+  constexpr explicit number(const T &value) : value_{value} {
   }
 
   /// @brief Construct from a scalar value.

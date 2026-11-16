@@ -191,7 +191,7 @@ auto bezier_curve<T>::fit(
   auto cy = make_array<cx.size()>(this->cy_);
   auto ts = make_array<cx.size() + cy.size()>(range<T, N>());
 
-  auto error_function = [&cx, &cy](const auto &xs, const auto &ys, const auto &ts) {
+  auto error_function = [&] {
     return dual::summation(zip(xs, ys, ts), [&](const auto &x, const auto &y, const auto &t) {
       const auto st = sigmoid(t);
       const auto dx = x - detail::curve_line_value(st, cx);
@@ -200,10 +200,10 @@ auto bezier_curve<T>::fit(
     });
   };
 
-  constexpr auto DIM = cx.size() + cy.size() + ts.size();
+  constexpr auto width = cx.size() + cy.size() + ts.size();
   for (size_t i = 0; i < steps; ++i) {
-    const auto error = error_function(xs, ys, ts);
-    const auto delta = dvalue<DIM>(error, rate);
+    const auto error = error_function();
+    const auto delta = dvalue<width>(error, rate);
     concat(cx, cy, ts) = concat(cx, cy, ts) - delta;
   }
   this->cx_ = cx.to_array();

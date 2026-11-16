@@ -59,7 +59,9 @@ function(uzu_warnings target)
   if(MSVC)
     target_compile_options(${target} PRIVATE /W4)
   else()
-    target_compile_options(${target} PRIVATE -Wall -Wextra)
+    # -Wshadow because the keywords are meant to be imported by name (`using uzu::sigma;`), and
+    # the library must not then reuse those names for its own variables.
+    target_compile_options(${target} PRIVATE -Wall -Wextra -Wshadow)
   endif()
 endfunction()
 

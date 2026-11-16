@@ -41,8 +41,8 @@ class gradient {
 
   /// @brief The delta for one bounded gradient component.
   template <std::size_t Index>
-  constexpr auto step(value_type gradient) -> value_type {
-    return -rate_ * gradient;
+  constexpr auto step(value_type slope) -> value_type {
+    return -rate_ * slope;
   }
 
  private:
