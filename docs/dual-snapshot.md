@@ -69,7 +69,7 @@ Every header compiles standalone under GCC 13.3 and Clang 18.1.
 
 Moving the headers under one include root put every one of them in the build
 for the first time, under `-Wall -Wextra` and as a standalone translation unit.
-That surfaced four things, all fixed here (the first four rows came later, from review):
+That surfaced four things, all fixed here (the first six rows came later, from review):
 
 | file | fix |
 | --- | --- |
@@ -79,6 +79,8 @@ That surfaced four things, all fixed here (the first four rows came later, from 
 | `number.hpp` | the conversion to the scalar is `explicit`, so `std::sin(n)` is a compile error rather than a silent call to the scalar overload that drops the derivatives |
 | `operations/base.hpp` | an element-wise operation on arrays of different lengths is a `static_assert`; it used to truncate to the second operand's length |
 | `operations/pow.hpp` | the derivative is zero, not NaN, where the formula multiplies zero by infinity: a zero exponent, a zero base under a positive exponent, and any base under an exponent that does not vary |
+| `functional/product.hpp` | did not compile: it built a `dual::array` out of tuples, which the array rejects. It now returns the Cartesian product as a tuple of rows of references, the shape `zip` returns, so `summation` folds over it. The mutable overload went with the fix; nothing used it |
+| `functional/transform.hpp` | the `dual::array` overload did not compile: it called `std::apply` on each element, which is a number, not a tuple. Both overloads are `constexpr` now |
 | `types/bezier_curve_5.hpp` | `<algorithm>`, `<cmath>`, `<cstddef>`, `<limits>`, `<numeric>` and `<utility>` added — it used `std::abs`, `std::clamp`, `size_t`, `std::numeric_limits` and `std::index_sequence` without them |
 | `types/bezier_curve_5.hpp` | `iota<T, N>()` added. The header called it without ever declaring it; GCC rejects the non-dependent name outright, and Clang only accepted it because the member initializer was never instantiated. It is spelled the way `bezier_curve.hpp`, which this was extracted from, spells it |
 
