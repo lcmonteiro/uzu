@@ -12,7 +12,6 @@
 #define UZU_FOUNDATION_DUAL_OPERATIONS_EXP_HPP
 
 #include <cmath>
-#include <functional>
 
 #include "uzu/foundation/dual/operations/base.hpp"
 
@@ -44,27 +43,15 @@ struct exp_operation : unary_operation<exp_operation> {
 /// @return The exponential of the dual number.
 template <number_operand T>
 inline auto exp(const T &n) {
-  return std::invoke(exp_operation{}, n);
+  return exp_operation{}(n);
 }
-/// @brief Functor for element-wise exponential transformation on dual arrays.
-struct exp_transform : transform_unary_operation<exp_transform> {
-  /// @brief Applies the exponential transformation to an array element.
-  /// @tparam T The numeric type of the element.
-  /// @param n The element.
-  /// @return The exponential of the element.
-  template <class T>
-  auto transform(const T &n) const {
-    return exp(n);
-  }
-};
-/// @brief `exp` for arrays of dual numbers. Found by ADL: call it unqualified.
-/// @tparam T The array type.
-/// @param n The array of dual numbers.
-/// @return An array of exponentials of the dual numbers.
+
+/// @brief `exp` of each element of an array. See `elementwise`. Found by ADL: call it unqualified.
 template <array_operand T>
-inline auto exp(const T &n) {
-  return std::invoke(exp_transform{}, n);
+inline auto exp(const T &c) {
+  return elementwise<exp_operation>{}(c);
 }
+
 }  // namespace dual
 
 #endif  // UZU_FOUNDATION_DUAL_OPERATIONS_EXP_HPP

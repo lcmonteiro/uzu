@@ -7,8 +7,6 @@
 #ifndef UZU_FOUNDATION_DUAL_OPERATIONS_NEGATE_HPP
 #define UZU_FOUNDATION_DUAL_OPERATIONS_NEGATE_HPP
 
-#include <functional>
-
 #include "uzu/foundation/dual/operations/base.hpp"
 
 namespace dual {
@@ -40,28 +38,13 @@ struct negate : unary_operation<negate> {
 /// @return The result of negating n using dual arithmetic.
 template <number_operand T>
 inline constexpr auto operator-(const T &n) {
-  return std::invoke(negate{}, n);
+  return negate{}(n);
 }
 
-/// @brief Functor for element-wise negation transformation on arrays.
-struct negate_transform : transform_unary_operation<negate_transform> {
-  /// @brief Applies negation to an array element.
-  /// @tparam T The numeric type of the element.
-  /// @param n The array element.
-  /// @return The negation of the element.
-  template <class T>
-  constexpr auto transform(const T &n) const {
-    return -n;
-  }
-};
-
-/// @brief Overloads the unary minus operator for arrays of dual numbers.
-/// @tparam T The array type.
-/// @param n The array of dual numbers.
-/// @return An array with each element negated.
+/// @brief Unary `-` of each element of an array. See `elementwise`.
 template <array_operand T>
-inline constexpr auto operator-(const T &n) {
-  return std::invoke(negate_transform{}, n);
+inline constexpr auto operator-(const T &c) {
+  return elementwise<negate>{}(c);
 }
 
 }  // namespace dual

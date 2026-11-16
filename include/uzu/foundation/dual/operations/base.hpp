@@ -16,17 +16,15 @@
 
 namespace dual {
 
-/// @brief What each operation base accepts, as a concept per base.
+/// @brief What each kind of operation accepts, as a concept per kind.
 ///
-/// These replace the `enable_if` each base used to publish as a member alias. An operator or
-/// `std::` overload is written next to its functor and constrains itself with the concept that
-/// pairs with that functor's base:
+/// An operator or function is written next to its functor and constrains itself with the concept
+/// that pairs with how it applies that functor:
 ///
 ///     unary_operation             number_operand
 ///     binary_operation            number_operands
-///     transform_unary_operation   array_operand
-///     transform_binary_operation  array_operands
-///     broadcast_operation         broadcast_operands
+///     elementwise, unary          array_operand
+///     elementwise, binary         elementwise_operands  (array_operands or broadcast_operands)
 ///
 /// A binary rule is symmetric on purpose, so `n - 1.0` and `1.0 - n` both resolve. Two numbers
 /// must share their scalar type; a number and a plain `scalar` always combine, the scalar being
@@ -57,6 +55,9 @@ concept array_operands =
 template <class T1, class T2>
 concept broadcast_operands = (is_array_v<T1> && (is_number_v<T2> || scalar<T2>)) ||
                              (is_array_v<T2> && (is_number_v<T1> || scalar<T1>));
+
+template <class T1, class T2>
+concept elementwise_operands = array_operands<T1, T2> || broadcast_operands<T1, T2>;
 
 /// @brief Structure representing a dual number with a value and derivative.
 /// @tparam T The data type of the value and derivative.
@@ -247,135 +248,70 @@ struct binary_operation {
   }
 };
 
-/// @brief Base class for element-wise unary operations on arrays.
-/// @tparam Derived The derived class implementing the operation.
-template <class Derived>
-struct transform_unary_operation {
-  /// @brief Applies the unary operation to an array.
-  /// @param c Input array.
-  /// @return Result array after transformation.
-  template <class... T>
-  constexpr auto operator()(const array<T...> &c) const {
-    return transform(c, c.indices());
+/// @brief @p Op applied element by element: how every operation reaches arrays.
+///
+/// With one array it maps @p Op over the elements. With two operands, at least one of them a
+/// `dual::array`, it pairs elements: two tuple-like operands (a `dual::array`, a `std::array`)
+/// pair by position and must be the same length; otherwise the operand that is not tuple-like - a
+/// number or a scalar - is paired with every element of the other.
+///
+/// @p Op is the operation's own functor (`plus`, `sin_operation`, ...), so each element of the
+/// result is exactly what the operation gives on that element.
+/// @tparam Op The functor to apply, default-constructible and callable on elements.
+template <class Op>
+struct elementwise {
+  /// @brief @p Op of each element of @p c.
+  template <class... Ts>
+  constexpr auto operator()(const array<Ts...> &c) const {
+    return apply(c.indices(), c);
   }
 
- protected:
-  /// @brief Retrieves the derived class instance.
-  constexpr auto self() const {
-    return static_cast<const Derived *>(this);
+  /// @brief @p Op of each pair of elements of @p c1 and @p c2, or of each element and the one
+  /// value that is not an array.
+  template <class T1, class T2>
+  constexpr auto operator()(const T1 &c1, const T2 &c2) const {
+    if constexpr (mismatched<T1, T2>) {
+      static_assert(!mismatched<T1, T2>, "element-wise operation on arrays of different lengths");
+      return 0;  // only to stop here, after the message above
+    } else {
+      constexpr std::size_t size =
+          std::tuple_size_v<std::conditional_t<is_array_like_v<T1>, T1, T2>>;
+      return apply(indices_sequence_t<0, size>{}, c1, c2);
+    }
   }
 
-  /// @brief Helper for transforming each element of the array.
-  /// @tparam T Input array type.
-  /// @tparam Is Index sequence.
-  /// @param c Input array.
-  /// @return Transformed array.
-  template <class T, std::size_t... Is>
-  constexpr auto transform(const T &c, indices<Is...>) const {
-    return array{self()->transform(get<Is>(c))...};
-  }
-};
+ private:
+  /// @brief Whether both operands are arrays and their lengths differ.
+  template <class T1, class T2>
+  static constexpr bool mismatched = [] {
+    if constexpr (is_array_like_v<T1> && is_array_like_v<T2>) {
+      return std::tuple_size_v<T1> != std::tuple_size_v<T2>;
+    } else {
+      return false;
+    }
+  }();
 
-/// @brief Base class for element-wise binary operations on arrays.
-/// @tparam Derived The derived class implementing the operation.
-template <class Derived>
-struct transform_binary_operation {
-  /// @brief Applies the binary operation to two arrays or array-like objects.
-  /// @param c1 First array.
-  /// @param c2 Second array or array-like object.
-  /// @return Result array after transformation.
-  template <class... T1, class T2>
-  constexpr auto operator()(const array<T1...> &c1, const T2 &c2) const {
-    return transform(c1, c2, c1.indices());
+  /// @brief Element @p I of @p c, or @p c itself if it is a single value to broadcast.
+  template <std::size_t I, class T>
+  static constexpr auto element(const T &c) -> decltype(auto) {
+    if constexpr (is_array_like_v<T>) {
+      using std::get;  // std containers by name, dual::array by ADL
+      return get<I>(c);
+    } else {
+      return (c);
+    }
   }
 
-  template <class T1, class... T2>
-  constexpr auto operator()(const T1 &c1, const array<T2...> &c2) const {
-    return transform(c1, c2, c2.indices());
+  /// @brief @p Op of element @p I of every operand.
+  template <std::size_t I, class... Ts>
+  static constexpr auto at(const Ts &...operands) {
+    return Op{}(element<I>(operands)...);
   }
 
-  template <class... T1, class... T2>
-  constexpr auto operator()(const array<T1...> &c1, const array<T2...> &c2) const {
-    return transform(c1, c2, c2.indices());
-  }
-
- protected:
-  /// @brief Retrieves the derived class instance.
-  constexpr auto self() const {
-    return static_cast<const Derived *>(this);
-  }
-
-  /// @brief Applies the operation to each pair of elements at the same position.
-  ///
-  /// The two operands must be the same length: an element-wise operation has no answer for an
-  /// element without a partner, so a mismatch is a compile error rather than a shorter result.
-  /// @tparam T1 First array type.
-  /// @tparam T2 Second array type.
-  /// @tparam Is Index sequence.
-  /// @param c1 First array.
-  /// @param c2 Second array.
-  /// @return Transformed array.
-  template <class T1, class T2, std::size_t... Is>
-  constexpr auto transform(const T1 &c1, const T2 &c2, indices<Is...>) const {
-    static_assert(
-        std::tuple_size_v<T1> == std::tuple_size_v<T2>,
-        "element-wise operation on arrays of different lengths");
-    return array{self()->transform(get<Is>(c1), get<Is>(c2))...};
-  }
-};
-
-/// @brief Base class for broadcasting operations on arrays and scalars.
-/// @tparam Derived The derived class implementing the operation.
-template <class Derived>
-struct broadcast_operation {
-  /// @brief Applies the broadcast operation to an array and a scalar.
-  /// @param c1 Array input.
-  /// @param c2 Scalar input.
-  /// @return Result array after transformation.
-  template <class... T1, class T2>
-  constexpr auto operator()(const array<T1...> &c1, const T2 &c2) const {
-    return transform(c1, c2, c1.indices());
-  }
-
-  /// @brief Applies the broadcast operation to a scalar and an array.
-  /// @param c1 Scalar input.
-  /// @param c2 Array input.
-  /// @return Result array after transformation.
-  template <class T1, class... T2>
-  constexpr auto operator()(const T1 &c1, const array<T2...> &c2) const {
-    return transform(c1, c2, c2.indices());
-  }
-
- protected:
-  /// @brief Retrieves the derived class instance.
-  constexpr auto self() const {
-    return static_cast<const Derived *>(this);
-  }
-
-  /// @brief Helper for applying the operation across all elements of an array
-  /// and a scalar.
-  /// @tparam T1 Array type.
-  /// @tparam T2 Scalar type.
-  /// @tparam Is Index sequence.
-  /// @param c1 Array input.
-  /// @param c2 Scalar input.
-  /// @return Result array after transformation.
-  template <class... T1, class T2, std::size_t... Is>
-  constexpr auto transform(const array<T1...> &c1, const T2 &c2, indices<Is...>) const {
-    return array{self()->transform(get<Is>(c1), c2)...};
-  }
-
-  /// @brief Helper for applying the operation across all elements of a scalar
-  /// and an array.
-  /// @tparam T1 Scalar type.
-  /// @tparam T2 Array type.
-  /// @tparam Is Index sequence.
-  /// @param c1 Scalar input.
-  /// @param c2 Array input.
-  /// @return Result array after transformation.
-  template <class T1, class... T2, std::size_t... Is>
-  constexpr auto transform(const T1 &c1, const array<T2...> &c2, indices<Is...>) const {
-    return array{self()->transform(c1, get<Is>(c2))...};
+  /// @brief The array of @p Op at every index, in order.
+  template <std::size_t... Is, class... Ts>
+  static constexpr auto apply(indices<Is...>, const Ts &...operands) {
+    return array{at<Is>(operands...)...};
   }
 };
 

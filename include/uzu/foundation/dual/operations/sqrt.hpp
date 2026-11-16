@@ -8,7 +8,6 @@
 #define UZU_FOUNDATION_DUAL_OPERATIONS_SQRT_HPP
 
 #include <cmath>
-#include <functional>
 
 #include "uzu/foundation/dual/operations/base.hpp"
 
@@ -40,28 +39,15 @@ struct sqrt_operation : unary_operation<sqrt_operation> {
 /// @return The result of applying sqrt using dual arithmetic.
 template <number_operand T>
 inline auto sqrt(const T &n) {
-  return std::invoke(sqrt_operation{}, n);
+  return sqrt_operation{}(n);
 }
-/// @brief Functor for element-wise square root transformation on arrays.
-struct sqrt_transform : transform_unary_operation<sqrt_transform> {
-  /// @brief Applies square root to an array element.
-  /// @tparam T The numeric type of the element.
-  /// @param n The array element.
-  /// @return The square root of the element.
-  template <class T>
-  auto transform(const T &n) const {
-    return sqrt(n);
-  }
-};
-/// @brief `sqrt` for arrays of dual numbers. Found by ADL: call it unqualified.
-/// @tparam T The array type.
-/// @param n The array of dual numbers.
-/// @return An array with each element as the square root of the original
-/// element.
+
+/// @brief `sqrt` of each element of an array. See `elementwise`. Found by ADL: call it unqualified.
 template <array_operand T>
-inline auto sqrt(const T &n) {
-  return std::invoke(sqrt_transform{}, n);
+inline auto sqrt(const T &c) {
+  return elementwise<sqrt_operation>{}(c);
 }
+
 }  // namespace dual
 
 #endif  // UZU_FOUNDATION_DUAL_OPERATIONS_SQRT_HPP

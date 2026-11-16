@@ -7,8 +7,6 @@
 #ifndef UZU_FOUNDATION_DUAL_OPERATIONS_MINUS_HPP
 #define UZU_FOUNDATION_DUAL_OPERATIONS_MINUS_HPP
 
-#include <functional>
-
 #include "uzu/foundation/dual/operations/base.hpp"
 
 namespace dual {
@@ -66,62 +64,15 @@ struct minus : binary_operation<minus> {
 template <class T1, class T2>
   requires number_operands<T1, T2>
 inline constexpr auto operator-(const T1 &n1, const T2 &n2) {
-  return std::invoke(minus{}, n1, n2);
+  return minus{}(n1, n2);
 }
 
-/// @brief Functor for element-wise subtraction transformation on arrays.
-struct minus_transform : transform_binary_operation<minus_transform> {
-  /// @brief Applies subtraction to each corresponding pair of elements.
-  /// @tparam T1 Minuend element type.
-  /// @tparam T2 Subtrahend element type.
-  /// @param n1 Minuend element.
-  /// @param n2 Subtrahend element.
-  /// @return Result of n1 - n2.
-  template <class T1, class T2>
-  constexpr auto transform(const T1 &n1, const T2 &n2) const {
-    return n1 - n2;
-  }
-};
-
-/// @brief Overloads the subtraction operator for element-wise array
-/// subtraction.
-/// @tparam T1 Array or element type.
-/// @tparam T2 Array or element type.
-/// @param c1 Minuend array or element.
-/// @param c2 Subtrahend array or element.
-/// @return Array with elements as c1[i] - c2[i].
+/// @brief `-` element by element: two arrays of the same length, or an array and one value
+/// applied to every element. See `elementwise`.
 template <class T1, class T2>
-  requires array_operands<T1, T2>
+  requires elementwise_operands<T1, T2>
 inline constexpr auto operator-(const T1 &c1, const T2 &c2) {
-  return std::invoke(minus_transform{}, c1, c2);
-}
-
-/// @brief Functor for broadcasting subtraction operation between arrays and
-/// scalars.
-struct minus_broadcast : broadcast_operation<minus_broadcast> {
-  /// @brief Applies subtraction to each array element and scalar.
-  /// @tparam T1 Array element type.
-  /// @tparam T2 Scalar type.
-  /// @param n1 Array element.
-  /// @param n2 Scalar.
-  /// @return Result of n1 - n2.
-  template <class T1, class T2>
-  constexpr auto transform(const T1 &n1, const T2 &n2) const {
-    return n1 - n2;
-  }
-};
-
-/// @brief Overloads the subtraction operator for broadcasting subtraction
-/// between arrays and scalars.
-/// @tparam T1 Array or scalar type.
-/// @tparam T2 Array or scalar type.
-/// @param c1 Array or scalar.
-/// @param c2 Array or scalar.
-/// @return Array with elements as c1[i] - c2 (or c1 - c2[i]).
-template <class T1, class T2>
-  requires broadcast_operands<T1, T2>
-inline constexpr auto operator-(const T1 &c1, const T2 &c2) {
-  return std::invoke(minus_broadcast{}, c1, c2);
+  return elementwise<minus>{}(c1, c2);
 }
 
 }  // namespace dual

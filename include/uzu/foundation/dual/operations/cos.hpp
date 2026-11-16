@@ -8,7 +8,6 @@
 #define UZU_FOUNDATION_DUAL_OPERATIONS_COS_HPP
 
 #include <cmath>
-#include <functional>
 
 #include "uzu/foundation/dual/operations/base.hpp"
 
@@ -39,27 +38,15 @@ struct cos_operation : unary_operation<cos_operation> {
 /// @return The cosine of the dual number.
 template <number_operand T>
 inline auto cos(const T &n) {
-  return std::invoke(cos_operation{}, n);
+  return cos_operation{}(n);
 }
-/// @brief Functor for element-wise cosine transformation on dual arrays.
-struct cos_transform : transform_unary_operation<cos_transform> {
-  /// @brief Applies the cosine transformation to an array element.
-  /// @tparam T The numeric type of the element.
-  /// @param n The element.
-  /// @return The cosine of the element.
-  template <class T>
-  auto transform(const T &n) const {
-    return cos(n);
-  }
-};
-/// @brief `cos` for arrays of dual numbers. Found by ADL: call it unqualified.
-/// @tparam T The array type.
-/// @param n The array of dual numbers.
-/// @return An array of cosines of the dual numbers.
+
+/// @brief `cos` of each element of an array. See `elementwise`. Found by ADL: call it unqualified.
 template <array_operand T>
-inline auto cos(const T &n) {
-  return std::invoke(cos_transform{}, n);
+inline auto cos(const T &c) {
+  return elementwise<cos_operation>{}(c);
 }
+
 }  // namespace dual
 
 #endif  // UZU_FOUNDATION_DUAL_OPERATIONS_COS_HPP

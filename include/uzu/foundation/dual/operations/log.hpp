@@ -8,7 +8,6 @@
 #define UZU_FOUNDATION_DUAL_OPERATIONS_LOG_HPP
 
 #include <cmath>
-#include <functional>
 #include <limits>
 
 #include "uzu/foundation/dual/operations/base.hpp"
@@ -47,27 +46,15 @@ struct log_operation : unary_operation<log_operation> {
 /// @return The natural logarithm of the dual number.
 template <number_operand T>
 inline auto log(const T &n) {
-  return std::invoke(log_operation{}, n);
+  return log_operation{}(n);
 }
-/// @brief Functor for element-wise logarithm transformation on dual arrays.
-struct log_transform : transform_unary_operation<log_transform> {
-  /// @brief Applies the logarithm transformation to an array element.
-  /// @tparam T The numeric type of the element.
-  /// @param n The element.
-  /// @return The natural logarithm of the element.
-  template <class T>
-  auto transform(const T &n) const {
-    return log(n);
-  }
-};
-/// @brief `log` for arrays of dual numbers. Found by ADL: call it unqualified.
-/// @tparam T The array type.
-/// @param n The array of dual numbers.
-/// @return An array of logarithms of the dual numbers.
+
+/// @brief `log` of each element of an array. See `elementwise`. Found by ADL: call it unqualified.
 template <array_operand T>
-inline auto log(const T &n) {
-  return std::invoke(log_transform{}, n);
+inline auto log(const T &c) {
+  return elementwise<log_operation>{}(c);
 }
+
 }  // namespace dual
 
 #endif  // UZU_FOUNDATION_DUAL_OPERATIONS_LOG_HPP

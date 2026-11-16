@@ -8,7 +8,6 @@
 #define UZU_FOUNDATION_DUAL_OPERATIONS_SIN_HPP
 
 #include <cmath>
-#include <functional>
 
 #include "uzu/foundation/dual/operations/base.hpp"
 
@@ -39,27 +38,15 @@ struct sin_operation : unary_operation<sin_operation> {
 /// @return The result of applying sine using dual arithmetic.
 template <number_operand T>
 inline auto sin(const T &n) {
-  return std::invoke(sin_operation{}, n);
+  return sin_operation{}(n);
 }
-/// @brief Functor for element-wise sine transformation on arrays.
-struct sin_transform : transform_unary_operation<sin_transform> {
-  /// @brief Applies sine to an array element.
-  /// @tparam T The numeric type of the element.
-  /// @param n The array element.
-  /// @return The sine of the element.
-  template <class T>
-  auto transform(const T &n) const {
-    return sin(n);
-  }
-};
-/// @brief `sin` for arrays of dual numbers. Found by ADL: call it unqualified.
-/// @tparam T The array type.
-/// @param n The array of dual numbers.
-/// @return An array with each element as the sine of the original element.
+
+/// @brief `sin` of each element of an array. See `elementwise`. Found by ADL: call it unqualified.
 template <array_operand T>
-inline auto sin(const T &n) {
-  return std::invoke(sin_transform{}, n);
+inline auto sin(const T &c) {
+  return elementwise<sin_operation>{}(c);
 }
+
 }  // namespace dual
 
 #endif  // UZU_FOUNDATION_DUAL_OPERATIONS_SIN_HPP
