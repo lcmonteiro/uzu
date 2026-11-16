@@ -9,6 +9,7 @@
 
 #include <cstddef>
 #include <tuple>
+#include <type_traits>
 
 #include "uzu/foundation/dual/array.hpp"
 #include "uzu/foundation/dual/number.hpp"
@@ -27,14 +28,24 @@ namespace dual {
 ///     transform_binary_operation  array_operands
 ///     broadcast_operation         broadcast_operands
 ///
-/// A binary rule is symmetric on purpose: one side has to be the real thing and the other only
-/// has to be convertible to it, so `n - 1.0` and `1.0 - n` both resolve.
+/// A binary rule is symmetric on purpose, so `n - 1.0` and `1.0 - n` both resolve. Two numbers
+/// must share their scalar type; a number and a plain `scalar` always combine, the scalar being
+/// converted to the number's type first.
 template <class T>
 concept number_operand = is_number_v<T>;
 
+/// @brief A plain value a number combines with: any arithmetic type but `bool`.
+///
+/// It is converted to the number's own scalar type before use, so `n * 2` means `n * 2.0` and a
+/// `float` number stays a `float` number. `bool` is left out because `n + true` is a mistake far
+/// more often than it is a 1.
+template <class S>
+concept scalar = std::is_arithmetic_v<S> && !std::is_same_v<S, bool>;
+
 template <class T1, class T2>
-concept number_operands =
-    (is_number_v<T1> && is_number_like_v<T2>) || (is_number_v<T2> && is_number_like_v<T1>);
+concept number_operands = (is_number_v<T1> && is_number_v<T2> &&
+                           std::is_same_v<typename T1::value_type, typename T2::value_type>) ||
+                          (is_number_v<T1> && scalar<T2>) || (scalar<T1> && is_number_v<T2>);
 
 template <class T>
 concept array_operand = is_array_v<T>;
@@ -44,8 +55,8 @@ concept array_operands =
     (is_array_v<T1> && is_array_like_v<T2>) || (is_array_v<T2> && is_array_like_v<T1>);
 
 template <class T1, class T2>
-concept broadcast_operands =
-    (is_array_v<T1> && is_number_like_v<T2>) || (is_array_v<T2> && is_number_like_v<T1>);
+concept broadcast_operands = (is_array_v<T1> && (is_number_v<T2> || scalar<T2>)) ||
+                             (is_array_v<T2> && (is_number_v<T1> || scalar<T1>));
 
 /// @brief Structure representing a dual number with a value and derivative.
 /// @tparam T The data type of the value and derivative.
@@ -136,13 +147,14 @@ struct binary_operation_indices {
 template <class Derived>
 struct binary_operation {
   /// @brief Applies the binary operation to a number and a scalar.
-  /// @tparam T The data type of the number.
-  /// @tparam D1 Differentiation orders.
+  /// @tparam T The number's scalar type, which @p s2 is converted to.
+  /// @tparam D1 The number's derivative indices.
   /// @param n1 The input number.
-  /// @param v2 The scalar value.
+  /// @param s2 The scalar value.
   /// @return The result of the operation.
-  template <class T, std::size_t... D1>
-  constexpr auto operator()(const number<T, D1...> &n1, const T &v2) const {
+  template <class T, std::size_t... D1, scalar S>
+  constexpr auto operator()(const number<T, D1...> &n1, const S &s2) const {
+    const auto v2 = static_cast<T>(s2);
     auto result = number<T, D1...>{};
     update_value(n1.value(), v2, result);
     update_dvalues(indices<D1...>{}, n1, v2, result);
@@ -150,13 +162,14 @@ struct binary_operation {
   }
 
   /// @brief Applies the binary operation to a scalar and a number.
-  /// @tparam T The data type of the number.
-  /// @tparam D2 Differentiation orders.
-  /// @param v1 The scalar value.
+  /// @tparam T The number's scalar type, which @p s1 is converted to.
+  /// @tparam D2 The number's derivative indices.
+  /// @param s1 The scalar value.
   /// @param n2 The input number.
   /// @return The result of the operation.
-  template <class T, std::size_t... D2>
-  constexpr auto operator()(const T &v1, const number<T, D2...> &n2) const {
+  template <scalar S, class T, std::size_t... D2>
+  constexpr auto operator()(const S &s1, const number<T, D2...> &n2) const {
+    const auto v1 = static_cast<T>(s1);
     auto result = number<T, D2...>{};
     update_value(v1, n2.value(), result);
     update_dvalues(indices<D2...>{}, v1, n2, result);

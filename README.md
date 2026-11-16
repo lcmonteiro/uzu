@@ -432,6 +432,7 @@ actually built.
 | [keyed_layout_test.cpp](tests/keyed_layout_test.cpp) | The generic layout: lookups, offsets, width, and a repeated key caught, with no graph involved. |
 | [dual_derivatives_test.cpp](tests/dual_derivatives_test.cpp) | `dual::zero` widens a sum to every index; `dual::derivatives` reads a full range or a slice back out. |
 | [dual_functional_test.cpp](tests/dual_functional_test.cpp) | `dual::product` is every combination in row-major order and folds with `summation`, over plain and dual containers; `dual::transform` carries derivatives through. |
+| [dual_operators_test.cpp](tests/dual_operators_test.cpp) | A number with a scalar of any arithmetic type, converted to the number's own; two numbers of different scalar types, or a `bool`, rejected at the operator. |
 | [keywords_test.cpp](tests/keywords_test.cpp) | Sigma broadcasting, keyword order independence, and that a stray or repeated keyword is rejected. |
 | [trajectory_compile_time_test.cpp](tests/trajectory_compile_time_test.cpp) | A four-pose chain, started from one point, recovered exactly — by the compiler. |
 | [optimization_trajectory_test.cpp](tests/optimization_trajectory_test.cpp) | A noisy 12- and 24-pose trajectory with random initial guesses and loop closures, recovered to within vortex's own accuracy bound. The one test here that runs rather than compiles, and most of the suite's build time. |

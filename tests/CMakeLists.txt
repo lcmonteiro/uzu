@@ -19,6 +19,7 @@ set(UZU_COMPILE_TIME_TESTS
   keyed_layout_test.cpp
   dual_derivatives_test.cpp
   dual_functional_test.cpp
+  dual_operators_test.cpp
   keywords_test.cpp
   trajectory_compile_time_test.cpp)
 
