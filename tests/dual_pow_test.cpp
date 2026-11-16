@@ -11,7 +11,7 @@
 #include <cmath>
 #include <cstdio>
 
-#include "tests/helpers/compile_time.hpp"
+#include "tests/helpers/run_time.hpp"
 #include "uzu/foundation/dual/number.hpp"
 #include "uzu/foundation/dual/operations/pow.hpp"
 
@@ -20,17 +20,14 @@ namespace {
 using base = dual::number<double, 0>;
 using exponent = dual::number<double, 1>;
 
-bool held = true;
+uzu::test::checks check;
 
 auto expect(bool condition, const char *what) -> void {
-  if (!condition) {
-    std::printf("FAILED: %s\n", what);
-    held = false;
-  }
+  check.expect(condition, what);
 }
 
 auto expect_close(double actual, double wanted, const char *what) -> void {
-  expect(uzu::test::close(actual, wanted, 1e-12), what);
+  check.expect_close(actual, wanted, what);
 }
 
 }  // namespace
@@ -63,7 +60,7 @@ auto main() -> int {
   // A negative base under a varying exponent has no real derivative.
   expect(std::isnan(pow(base{-2.0}, exponent{3.0}).dvalue<1>()), "d/dy (-2)^y stays NaN");
 
-  if (!held) {
+  if (check.result() != 0) {
     return 1;
   }
   std::printf("dual_pow: all passed\n");

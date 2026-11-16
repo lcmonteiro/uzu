@@ -437,7 +437,7 @@ actually built.
 | [trajectory_compile_time_test.cpp](tests/trajectory_compile_time_test.cpp) | A four-pose chain, started from one point, recovered exactly — by the compiler. |
 | [optimization_trajectory_test.cpp](tests/optimization_trajectory_test.cpp) | A noisy 12- and 24-pose trajectory with random initial guesses and loop closures, recovered to within vortex's own accuracy bound. The one test here that runs rather than compiles, and most of the suite's build time. |
 | [dual_pow_test.cpp](tests/dual_pow_test.cpp) | `pow` where the derivative formula multiplies zero by infinity: a zero base, a zero exponent, a negative base under a constant exponent. Run-time, because `std::pow` is. |
-| [dual_test.cpp](tests/dual_test.cpp), [dual_array_test.cpp](tests/dual_array_test.cpp) | The duals themselves, as run-time programs carried over from the vendored snapshot. |
+| [dual_test.cpp](tests/dual_test.cpp), [dual_array_test.cpp](tests/dual_array_test.cpp) | The duals themselves, as run-time programs carried over from the vendored snapshot: every value and derivative checked against its formula or a central finite difference, with failures on `stderr` so the printed output stays byte for byte comparable. |
 
 A clean build of the whole suite takes about 47 s on GCC and 59 s on Clang
 with `-j`, most of it the trajectory pair. Every test is deterministic: the
