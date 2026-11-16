@@ -14,18 +14,12 @@ namespace dual {
 /// numbers.
 struct negate : unary_operation<negate> {
   /// @brief Computes the negation of a value.
-  /// @tparam T The numeric type of the value.
-  /// @param v The input value.
-  /// @return The negation of v.
   template <class T>
   constexpr auto value(const T &v) const {
     return -v;
   }
 
   /// @brief Computes the derivative of the negation operation.
-  /// @tparam T The numeric type of the value.
-  /// @param n A duo containing the input value and its derivative.
-  /// @return The negation of the derivative component.
   template <class T>
   constexpr auto dvalue(const duo<T> &n) const {
     return -n.d;
@@ -33,9 +27,6 @@ struct negate : unary_operation<negate> {
 };
 
 /// @brief Overloads the unary minus operator for dual numbers.
-/// @tparam T The numeric type.
-/// @param n The dual number.
-/// @return The result of negating n using dual arithmetic.
 template <number_operand T>
 inline constexpr auto operator-(const T &n) {
   return negate{}(n);

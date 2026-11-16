@@ -59,8 +59,7 @@ concept broadcast_operands = (is_array_v<T1> && (is_number_v<T2> || scalar<T2>))
 template <class T1, class T2>
 concept elementwise_operands = array_operands<T1, T2> || broadcast_operands<T1, T2>;
 
-/// @brief Structure representing a dual number with a value and derivative.
-/// @tparam T The data type of the value and derivative.
+/// @brief One number seen through one index: its value, and its derivative at that index.
 template <class T>
 struct duo {
   const T &v;  ///< The value.
@@ -68,25 +67,15 @@ struct duo {
 };
 
 /// @brief Creates a duo object from a number.
-/// @tparam D The differentiation order.
-/// @tparam T The data type of the number.
-/// @tparam Dn Additional differentiation orders.
-/// @param n The number object.
-/// @return A duo object containing the value and derivative.
 template <std::size_t D, class T, std::size_t... Dn>
 inline constexpr auto make_duo(const number<T, Dn...> &n) {
   return duo<T>{n.value(), n.template dvalue<D>()};
 }
 
 /// @brief Base class for unary operations on numbers.
-/// @tparam Derived The derived class implementing the operation.
 template <class Derived>
 struct unary_operation {
   /// @brief Applies the unary operation to a number.
-  /// @tparam T The data type of the number.
-  /// @tparam D1 Differentiation orders.
-  /// @param n1 The input number.
-  /// @return The result of the operation.
   template <class T, std::size_t... D1>
   constexpr auto operator()(const number<T, D1...> &n1) const {
     auto result = number<T, D1...>{};
@@ -97,26 +86,17 @@ struct unary_operation {
 
  protected:
   /// @brief Retrieves the derived class instance.
-  /// @return Pointer to the derived class.
   constexpr auto self() const {
     return static_cast<const Derived *>(this);
   }
 
   /// @brief Updates the value of the result.
-  /// @tparam T Input value type.
-  /// @tparam N Result number type.
-  /// @param v1 The input value.
-  /// @param n The result number.
   template <class T, class N>
   constexpr void update_value(const T &v1, N &n) const {
     n.value(self()->value(v1));
   }
 
   /// @brief Updates the derivative value of the result for a specific index.
-  /// @tparam D The differentiation order.
-  /// @tparam N The number type.
-  /// @param n1 The input number.
-  /// @param n The result number.
   template <std::size_t D, class N>
   constexpr void update_dvalue(const N &n1, N &n) const {
     n.template dvalue<D>(self()->dvalue(make_duo<D>(n1)));
@@ -124,10 +104,6 @@ struct unary_operation {
 
  private:
   /// @brief Updates all derivative values in a pack.
-  /// @tparam Dn Differentiation orders.
-  /// @tparam N The number type.
-  /// @param n1 The input number.
-  /// @param n The result number.
   template <std::size_t... Dn, class N>
   constexpr void update_dvalues(const indices<Dn...>, const N &n1, N &n) const {
     (update_dvalue<Dn>(n1, n), ...);
@@ -137,22 +113,17 @@ struct unary_operation {
 /// @brief Helper types for managing indices in binary operations.
 template <class N1, class N2>
 struct binary_operation_indices {
-  using common = indices_interception_t<N1, N2>;
+  using common = indices_intersection_t<N1, N2>;
   using only_1 = indices_difference_t<N1, common>;
   using only_2 = indices_difference_t<N2, common>;
   using result = indices_concat_t<only_1, common, only_2>;
 };
 
 /// @brief Base class for binary operations on numbers.
-/// @tparam Derived The derived class implementing the operation.
 template <class Derived>
 struct binary_operation {
   /// @brief Applies the binary operation to a number and a scalar.
   /// @tparam T The number's scalar type, which @p s2 is converted to.
-  /// @tparam D1 The number's derivative indices.
-  /// @param n1 The input number.
-  /// @param s2 The scalar value.
-  /// @return The result of the operation.
   template <class T, std::size_t... D1, scalar S>
   constexpr auto operator()(const number<T, D1...> &n1, const S &s2) const {
     const auto v2 = static_cast<T>(s2);
@@ -164,10 +135,6 @@ struct binary_operation {
 
   /// @brief Applies the binary operation to a scalar and a number.
   /// @tparam T The number's scalar type, which @p s1 is converted to.
-  /// @tparam D2 The number's derivative indices.
-  /// @param s1 The scalar value.
-  /// @param n2 The input number.
-  /// @return The result of the operation.
   template <scalar S, class T, std::size_t... D2>
   constexpr auto operator()(const S &s1, const number<T, D2...> &n2) const {
     const auto v1 = static_cast<T>(s1);
@@ -178,12 +145,6 @@ struct binary_operation {
   }
 
   /// @brief Applies the binary operation to two numbers.
-  /// @tparam T The data type of the numbers.
-  /// @tparam D1 Differentiation orders for n1.
-  /// @tparam D2 Differentiation orders for n2.
-  /// @param n1 First input number.
-  /// @param n2 Second input number.
-  /// @return The result of the operation.
   template <class T, std::size_t... D1, std::size_t... D2>
   constexpr auto operator()(const number<T, D1...> &n1, const number<T, D2...> &n2) const {
     using indices = binary_operation_indices<indices<D1...>, indices<D2...>>;
@@ -198,30 +159,17 @@ struct binary_operation {
 
  protected:
   /// @brief Retrieves the derived class instance.
-  /// @return Pointer to the derived class.
   constexpr auto self() const {
     return static_cast<const Derived *>(this);
   }
 
   /// @brief Updates the value of the result.
-  /// @tparam T Input value type.
-  /// @tparam N Result number type.
-  /// @param v1 First input value.
-  /// @param v2 Second input value.
-  /// @param n The result number.
   template <class T, class N>
   constexpr void update_value(const T &v1, const T &v2, N &n) const {
     n.value(self()->value(v1, v2));
   }
 
   /// @brief Updates the derivative value for a specific index.
-  /// @tparam D Differentiation order.
-  /// @tparam N1 First operand type.
-  /// @tparam N2 Second operand type.
-  /// @tparam N Result type.
-  /// @param n1 First input operand.
-  /// @param n2 Second input operand.
-  /// @param n Result number.
   template <std::size_t D, class N1, class N2, class N>
   constexpr void update_dvalue(const N1 &n1, const N2 &n2, N &n) const {
     if constexpr (!is_number_v<N1>) {
@@ -235,13 +183,6 @@ struct binary_operation {
 
  private:
   /// @brief Updates all derivative values for a pack of indices.
-  /// @tparam Dn Differentiation orders.
-  /// @tparam N1 First operand type.
-  /// @tparam N2 Second operand type.
-  /// @tparam N Result type.
-  /// @param n1 First input operand.
-  /// @param n2 Second input operand.
-  /// @param n Result number.
   template <std::size_t... Dn, class N1, class N2, class N>
   constexpr void update_dvalues(const indices<Dn...>, const N1 &n1, const N2 &n2, N &n) const {
     (update_dvalue<Dn>(n1, n2, n), ...);

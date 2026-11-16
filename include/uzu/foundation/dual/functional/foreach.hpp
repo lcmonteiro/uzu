@@ -2,7 +2,7 @@
 /// @file
 ///
 /// @brief Provides utilities to apply a function to each element of a tuple or
-/// dual::array. Uses dual::apply to invoke a processing function on each element.
+/// dual::array. Uses dual::apply to invoke a function on each element.
 /// ===============================================================================================
 #ifndef UZU_FOUNDATION_DUAL_FUNCTIONAL_FOREACH_HPP
 #define UZU_FOUNDATION_DUAL_FUNCTIONAL_FOREACH_HPP
@@ -11,26 +11,16 @@
 
 namespace dual {
 
-/// @brief Applies a processing function to each element of a std::tuple.
-/// @tparam F Type of the processing function or functor.
-/// @tparam Ts Types of the tuple elements.
-/// @param data The std::tuple to process.
-/// @param process The function to apply to each element.
-/// @return Result of applying the process function to each tuple element.
+/// @brief Applies a function to each element of a std::tuple.
 template <class F, class... Ts>
-inline auto for_each(const std::tuple<Ts...> &data, F process) {
-  apply([&](const auto &...elems) { (apply(process, elems), ...); }, data);
+inline auto for_each(const std::tuple<Ts...> &data, F f) {
+  apply([&](const auto &...elems) { (apply(f, elems), ...); }, data);
 }
 
-/// @brief Applies a processing function to each element of a dual::array.
-/// @tparam F Type of the processing function or functor.
-/// @tparam Ts Types of the array elements.
-/// @param data The dual::array to process.
-/// @param process The function to apply to each element.
-/// @return Result of applying the process function to each array element.
+/// @brief Applies a function to each element of a dual::array.
 template <class F, class... Ts>
-inline auto for_each(const array<Ts...> &data, F process) {
-  apply([&](const auto &...elems) { (apply(process, elems), ...); }, data.storage());
+inline auto for_each(const array<Ts...> &data, F f) {
+  apply([&](const auto &...elems) { (apply(f, elems), ...); }, data.storage());
 }
 
 }  // namespace dual

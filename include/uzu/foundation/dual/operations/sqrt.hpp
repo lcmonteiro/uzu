@@ -16,27 +16,19 @@ namespace dual {
 /// numbers.
 struct sqrt_operation : unary_operation<sqrt_operation> {
   /// @brief Computes the square root of a value.
-  /// @tparam T The numeric type of the value.
-  /// @param v The input value.
-  /// @return The square root of v.
   template <class T>
   auto value(const T &v) const {
     return std::sqrt(v);
   }
 
   /// @brief Computes the derivative of the square root operation.
-  /// @tparam T The numeric type of the value.
-  /// @param n A duo containing the input value and its derivative.
-  /// @return The derivative of sqrt(n.v).
   template <class T>
   auto dvalue(const duo<T> &n) const {
     return n.d / (static_cast<T>(2.0) * std::sqrt(n.v));
   }
 };
+
 /// @brief `sqrt` for dual numbers. Found by ADL: call it unqualified.
-/// @tparam T The numeric type.
-/// @param n The dual number.
-/// @return The result of applying sqrt using dual arithmetic.
 template <number_operand T>
 inline auto sqrt(const T &n) {
   return sqrt_operation{}(n);

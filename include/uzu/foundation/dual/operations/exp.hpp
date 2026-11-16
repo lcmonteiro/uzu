@@ -20,27 +20,19 @@ namespace dual {
 /// dual numbers.
 struct exp_operation : unary_operation<exp_operation> {
   /// @brief Computes the exponential of a value.
-  /// @tparam T The numeric type of the value.
-  /// @param v The input value.
-  /// @return The exponential of v.
   template <class T>
   auto value(const T &v) const {
     return std::exp(v);
   }
 
   /// @brief Computes the derivative of the exponential function.
-  /// @tparam T The numeric type of the value.
-  /// @param n A duo containing the input value and its derivative.
-  /// @return The derivative of exp(n.v), which is exp(n.v) * n.d.
   template <class T>
   auto dvalue(const duo<T> &n) const {
     return std::exp(n.v) * n.d;
   }
 };
+
 /// @brief `exp` for dual numbers. Found by ADL: call it unqualified.
-/// @tparam T The numeric type.
-/// @param n The dual number.
-/// @return The exponential of the dual number.
 template <number_operand T>
 inline auto exp(const T &n) {
   return exp_operation{}(n);

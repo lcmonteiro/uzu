@@ -69,7 +69,7 @@ Every header compiles standalone under GCC 13.3 and Clang 18.1.
 
 Moving the headers under one include root put every one of them in the build
 for the first time, under `-Wall -Wextra` and as a standalone translation unit.
-That surfaced four things, all fixed here (the first eight rows came later, from review):
+That surfaced four things, all fixed here (the first nine rows came later, from review):
 
 | file | fix |
 | --- | --- |
@@ -83,6 +83,7 @@ That surfaced four things, all fixed here (the first eight rows came later, from
 | `functional/transform.hpp` | the `dual::array` overload did not compile: it called `std::apply` on each element, which is a number, not a tuple. Both overloads are `constexpr` now |
 | `operations/base.hpp` | a number combines with a scalar of any arithmetic type but `bool`, converted to the number's own scalar type, so `n * 2` works. Two numbers must share a scalar type. Both used to pass the operator's constraint and then fail inside `std::invoke` |
 | `operations/` | the sixteen `*_transform` and `*_broadcast` structs, and the three CRTP bases behind them, are one adaptor, `elementwise<Op>` in `base.hpp`, which applies an operation's own functor element by element. Each operation now declares one array overload instead of two, and calls its functor directly rather than through `std::invoke` |
+| all vendored headers | the `@tparam`/`@param`/`@return` lines that restated a signature are gone - about 420 of them - leaving a `@brief` per declaration and the few tags that state a precondition. Docs that were wrong are fixed: `number`'s constructors, `log`'s derivative at zero, `duo`, and `number<T, S>` for a template that is `number<T, Dn...>`. `indices_interception_t` is `indices_intersection_t` |
 | `types/bezier_curve_5.hpp` | `<algorithm>`, `<cmath>`, `<cstddef>`, `<limits>`, `<numeric>` and `<utility>` added — it used `std::abs`, `std::clamp`, `size_t`, `std::numeric_limits` and `std::index_sequence` without them |
 | `types/bezier_curve_5.hpp` | `iota<T, N>()` added. The header called it without ever declaring it; GCC rejects the non-dependent name outright, and Clang only accepted it because the member initializer was never instantiated. It is spelled the way `bezier_curve.hpp`, which this was extracted from, spells it |
 

@@ -13,10 +13,6 @@ namespace dual {
 
 /// @brief Creates a view of selected elements from a dual::array using
 /// specified indices.
-/// @tparam Is The indices of elements to include in the view.
-/// @tparam Ts Types of the elements in the dual::array.
-/// @param data The dual::array to view.
-/// @return A dual::array containing references to the selected elements.
 ///
 /// The index sequence is a tag: it is there to deduce `Is...` and is never read, so it is left
 /// unnamed rather than named and ignored.
@@ -26,9 +22,6 @@ constexpr auto view(indices<Is...>, array<Ts...> &data) {
 }
 
 /// @brief Creates a view of all elements in a dual::array.
-/// @tparam Ts Types of the elements in the dual::array.
-/// @param data The dual::array to view.
-/// @return A dual::array containing references to all elements.
 template <class... Ts>
 constexpr auto view(array<Ts...> &data) {
   return view(data.indices(), data);

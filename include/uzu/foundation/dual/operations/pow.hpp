@@ -16,10 +16,6 @@ namespace dual {
 /// numbers.
 struct pow_operation : binary_operation<pow_operation> {
   /// @brief Computes the exponentiation of two values.
-  /// @tparam T Numeric type.
-  /// @param v1 Base value.
-  /// @param v2 Exponent value.
-  /// @return The result of pow(v1, v2).
   template <class T>
   auto value(const T &v1, const T &v2) const {
     return std::pow(v1, v2);
@@ -70,12 +66,8 @@ struct pow_operation : binary_operation<pow_operation> {
     return std::pow(x, y) * std::log(x) * dy;
   }
 };
+
 /// @brief `pow` for dual numbers and scalars. Found by ADL: call it unqualified.
-/// @tparam T1 Base type.
-/// @tparam T2 Exponent type.
-/// @param n1 Base value.
-/// @param n2 Exponent value.
-/// @return Result of exponentiation using dual arithmetic.
 template <class T1, class T2>
   requires number_operands<T1, T2>
 inline auto pow(const T1 &n1, const T2 &n2) {
