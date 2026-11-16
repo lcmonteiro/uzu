@@ -35,7 +35,7 @@ namespace uzu {
 /// scalar as its own `value_type` - which is what this class then calls `value_type` too.
 /// @tparam Dimension How many numbers `plus` receives - the dimension the graph moves this node
 /// in, and the number of dual indices it takes up. Must match the estimate's width; see above.
-template <class Derived, class Estimation, auto Dimension>
+template <class Derived, class Estimation, std::size_t Dimension>
 class node {
  public:
   /// @brief The estimate: what `estimation()` hands back and `plus` returns.
@@ -61,6 +61,7 @@ class node {
   explicit constexpr node(const Args &...args)
       : estimation_{impl::find<impl::init_tag>(estimation_type{}, args...)},
         sigma_{impl::find_all<impl::sigma_tag>(filled(value_type{1}), args...)} {
+    impl::keyword_set<impl::init_tag, impl::sigma_tag>::check<Args...>();
   }
 
   /// @brief The current estimate.
@@ -109,6 +110,19 @@ class node {
   constexpr auto disable() -> void {
     enabled_ = false;
   }
+
+ protected:
+  /// @brief Copied, moved and destroyed only as part of the derived class.
+  ///
+  /// Protected rather than public so that the base cannot be made, copied or destroyed on its
+  /// own - which would slice a derived node down to it (C.35, C.67). The constructors stay public:
+  /// a derived class takes them with `using base::base;`, and an inherited constructor keeps the
+  /// base's access, so a protected one would make every derived node unconstructible.
+  constexpr node(const node &) = default;
+  constexpr node(node &&) = default;
+  constexpr auto operator=(const node &) -> node & = default;
+  constexpr auto operator=(node &&) -> node & = default;
+  constexpr ~node() = default;
 
  private:
   /// @brief A delta with every dimension set to the same value.

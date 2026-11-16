@@ -1,8 +1,15 @@
-#include <array>
-#include <functional>
-#include <iostream>
-#include <vector>
+/// ===============================================================================================
+/// @file
+///
+/// @brief The duals over arrays: element-wise operations, broadcasting, a fold, and printing.
+/// Each result is checked; what it prints is compared byte for byte across library changes.
+/// ===============================================================================================
 
+#include <array>
+#include <cmath>
+#include <tuple>
+
+#include "tests/helpers/run_time.hpp"
 #include "uzu/foundation/dual/array.hpp"
 #include "uzu/foundation/dual/functional.hpp"
 #include "uzu/foundation/dual/operations/cos.hpp"
@@ -17,77 +24,71 @@
 #include "uzu/foundation/dual/operations/sqrt.hpp"
 #include "uzu/foundation/dual/print.hpp"
 
-template <std::size_t D>
-using number = dual::number<double, D>;
+namespace {
 
-template <typename... Ts>
-struct overloads : Ts... {
-  using Ts::operator()...;
-};
-template <typename... Ts>
-overloads(Ts...) -> overloads<Ts...>;
+/// @brief The element-wise function `d` applies, on a plain double, with `a` held constant.
+auto chain(double a, double t) -> double {
+  return std::cos(std::sin(std::log(std::exp(a / t + a))));
+}
 
-template <typename T, typename = void>
-struct is_tuple_like : std::false_type {};
-
-template <typename T>
-struct is_tuple_like<T, std::void_t<decltype(std::tuple_size_v<T>)>> : std::true_type {};
+}  // namespace
 
 int main() {
   auto b = dual::make_array<0>(1.0, 2.0, 3.);
   auto a = std::array{1.0, 2.0, 4.0};
   auto n = dual::number<double, 3>{2.0};
-  auto d = std::cos(std::sin(std::log(std::exp(a / b + a))));
-  // Instantiated but not printed: the output of this program is compared byte for byte
-  // against earlier runs, so what it prints stays fixed.
-  [[maybe_unused]] auto e = std::cos(std::sin(n)) * 4.0;
+  auto d = cos(sin(log(exp(a / b + a))));
+  // Checked but not printed: what this program prints stays fixed across library changes.
+  auto e = cos(sin(n)) * 4.0;
   auto f = dual::array(std::tie(n, n));
-  // dual::product used to be the multiplicative twin of summation; in the
-  // current library it is the cartesian product of containers, so fold the
-  // elements with dual::apply instead.
-  auto g = dual::apply([](const auto &...e) { return ((e + 1.0) * ...); }, b);
+  // A fold over the elements: dual::product is the Cartesian product, not this.
+  auto g = dual::apply([](const auto &...x) { return ((x + 1.0) * ...); }, b);
 
-  [[maybe_unused]] auto h = dual::make_array<3>(a);
-  dual::apply([](auto) {}, n);
-  dual::print(std::pow(b, 0.5));
-  dual::print(std::sqrt(b));
+  dual::print(pow(b, 0.5));
+  dual::print(sqrt(b));
   dual::print(d);
   dual::print(f);
   dual::print(g);
 
-  // dual::plus_transform::enable_t<dual::array<>, int> z;
-  // using T1 = dual::array<>;
-  // using T2 = int;
-  // decltype(std::tuple_size_v<int>) h{};
-  //	dual::print(is_tuple_like<int>::value);
-  // dual::print(dual::is_number_like_v<decltype(n)>
-  // or
-  //	(dual::is_array_v<T2> and dual::is_array_like_v<T1>)
-  //	);
-  //	print(d);
-  /*
-  auto f = std::cos(
-         std::pow(
-           std::get<0>(d),
-           std::log(std::get<1>(d))) +
-         3.0 * std::exp(std::get<1>(d) - std::get<0>(d))) /
-       std::sin(std::get<2>(d));
+  using uzu::test::central_difference;
+  using uzu::test::difference_tolerance;
+  uzu::test::checks check;
 
+  // pow(b, 0.5) and sqrt(b) are the same function, with derivative 1 / (2 sqrt(b)).
+  const auto roots = pow(b, 0.5);
+  const auto square_roots = sqrt(b);
+  check.expect_close(get<1>(roots).value(), std::sqrt(2.0), "pow(b, 0.5)");
+  check.expect_close(get<1>(roots).dvalue<1>(), 0.5 / std::sqrt(2.0), "d pow(b, 0.5)");
+  check.expect_close(get<2>(square_roots).value(), std::sqrt(3.0), "sqrt(b)");
+  check.expect_close(get<2>(square_roots).dvalue<2>(), 0.5 / std::sqrt(3.0), "d sqrt(b)");
 
-  number<0> x{2};
-  number<1> y{3};
-  number<2> z{5};
-  auto f = std::cos(
-         std::pow(
-           x,
-           std::log(y)) +
-         3.0 * std::exp(y - x)) /
-       std::sin(z);
+  // d: element i depends on b_i alone, so each carries one derivative, at its own index.
+  const auto at_0 = [&](const std::array<double, 1> &t) { return chain(a[0], t[0]); };
+  const auto at_2 = [&](const std::array<double, 1> &t) { return chain(a[2], t[0]); };
+  check.expect_close(get<0>(d).value(), chain(a[0], 1.0), "d[0]");
+  check.expect_close(
+      get<0>(d).dvalue<0>(),
+      central_difference(at_0, std::array{1.0}, 0),
+      "d d[0] / d b0",
+      difference_tolerance);
+  check.expect_close(
+      get<2>(d).dvalue<2>(),
+      central_difference(at_2, std::array{3.0}, 0),
+      "d d[2] / d b2",
+      difference_tolerance);
 
-  std::cout << "f     = " << f.value() << std::endl;
-  std::cout << "df/dx = " << f.dvalue<0>() << std::endl;
-  std::cout << "df/dy = " << f.dvalue<1>() << std::endl;
-  std::cout << "df/dz = " << f.dvalue<2>() << std::endl;
-*/
-  return 0;
+  // e = 4 cos(sin(n)), so de/dn = -4 sin(sin(n)) cos(n).
+  check.expect_close(e.value(), 4.0 * std::cos(std::sin(2.0)), "e");
+  check.expect_close(e.dvalue<3>(), -4.0 * std::sin(std::sin(2.0)) * std::cos(2.0), "de/dn");
+
+  // f holds n twice, by value.
+  check.expect(get<0>(f).value() == 2.0 && get<1>(f).dvalue<3>() == 1.0, "f is n, twice");
+
+  // g = (b0 + 1)(b1 + 1)(b2 + 1) = 2 * 3 * 4, and each derivative is the product of the others.
+  check.expect_close(g.value(), 24.0, "g");
+  check.expect_close(g.dvalue<0>(), 12.0, "dg/db0");
+  check.expect_close(g.dvalue<1>(), 8.0, "dg/db1");
+  check.expect_close(g.dvalue<2>(), 6.0, "dg/db2");
+
+  return check.result();
 }

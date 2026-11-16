@@ -33,7 +33,7 @@
 /// constexpr auto build() const -> instance<Width>;  // on the builder
 ///
 /// template <std::size_t Index>
-/// value_type step(value_type gradient);             // on the instance
+/// value_type step(value_type slope);                // on the instance
 /// ```
 ///
 /// The split is invisible at the call site - `momentum{lr = 0.01, beta = 0.9}` is still what gets
@@ -44,6 +44,9 @@
 /// other.
 ///
 /// A stateless algorithm is its own instance and builds a copy of itself.
+///
+/// The graph checks all of this with `uzu::algorithm_for`, in `graph/contracts.hpp`, so a type
+/// that falls short is named at the graph rather than failing inside it.
 ///
 /// The graph calls `step` once per index per pass, in index order, and holds the instance by
 /// value. `step` is non-const so that an instance may keep state between calls.

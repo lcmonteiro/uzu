@@ -12,18 +12,22 @@ set(UZU_COMPILE_TIME_TESTS
   graph_descent_test.cpp
   graph_algorithm_test.cpp
   graph_contracts_test.cpp
+  graph_concepts_test.cpp
   graph_enable_test.cpp
   graph_many_edges_test.cpp
   tuple_test.cpp
   ranges_test.cpp
   keyed_layout_test.cpp
   dual_derivatives_test.cpp
+  dual_functional_test.cpp
+  dual_operators_test.cpp
   keywords_test.cpp
   trajectory_compile_time_test.cpp)
 
 set(UZU_RUNTIME_TESTS
   dual_test.cpp
   dual_array_test.cpp
+  dual_pow_test.cpp
   optimization_trajectory_test.cpp)
 
 # A thousand passes over a four-pose chain runs past the budget the others need, so this one asks
@@ -42,6 +46,7 @@ foreach(source IN LISTS UZU_COMPILE_TIME_TESTS UZU_RUNTIME_TESTS)
   # the same spelling the README uses.
   target_include_directories(${target} PRIVATE ${CMAKE_SOURCE_DIR})
   uzu_warnings(${target})
+  uzu_sanitize(${target})
 
   if(${source} IN_LIST UZU_LARGE_BUDGET_TESTS)
     uzu_constexpr_budget(${target} ${UZU_LARGE_BUDGET})

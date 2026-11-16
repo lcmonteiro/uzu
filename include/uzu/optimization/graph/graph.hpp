@@ -63,6 +63,15 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   /// @brief One block of dual indices per node, in declaration order.
   using layout = meta::keyed_layout<Ns...>;
 
+  static_assert(
+      impl::nodes_are_nodes<typename Ns::target_type...>,
+      "a node is not a uzu::node_like: derive it from uzu::node<itself, ...> and give it a plus");
+  static_assert(
+      impl::edges_are_edges<typename Es::target_type...>,
+      "an edge is not a uzu::edge_like: derive it from uzu::edge<itself, ...>");
+  static_assert(
+      algorithm_for<Algorithm, layout::width>,
+      "the algorithm is not a uzu::algorithm_for: see uzu/optimization/algorithm.hpp");
   static_assert(layout::distinct_keys, "two nodes are declared under the same key");
   static_assert(impl::edges_resolve<layout, Es...>, "an edge links a key no node declares");
 
@@ -78,9 +87,11 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   }
 
   /// @brief Runs the fit, in place. The step size belongs to the algorithm;
-  /// what is said here is only how many passes to take.
-  template <class... Args>
+  /// what is said here is only how many passes to take: `iterations`, which defaults to 10.
+  template <impl::keyword_argument... Args>
   constexpr auto fit(const Args &...args) -> void {
+    impl::keyword_set<impl::iterations_tag>::check<Args...>();
+
     const auto passes = impl::find_one<impl::iterations_tag>(10, args...);
 
     for (auto i = decltype(passes){0}; i < passes; ++i) {
@@ -145,25 +156,41 @@ class graph<Algorithm, nodes<Ns...>, edges<Es...>> {
   /// @brief One edge's contribution to the total: its error evaluated on its nodes' seeded
   /// estimates, each residual robustified against that dimension's sigma, and summed.
   ///
-  /// The residual is zipped against the sigmas and summed with the library's
-  /// own summation, so the shape here is the same one the bezier fit uses -
-  /// a fold over paired sequences rather than an index-driven loop.
+  /// Whether the error takes one estimate per linked node is checked before it is called, so
+  /// that linking an edge to the wrong number of nodes is one message rather than a trace through
+  /// the call.
   template <std::size_t I, class Entry>
   constexpr auto edge_error() const {
     using entry = Entry;
     const auto &edge = edge_at<I, Entry>();
 
-    const auto residuals = dual::apply(
-        [&](const auto &...inputs) { return edge.error(inputs...); },
-        edge_inputs<Entry>(std::make_index_sequence<entry::arity>{}));
+    using inputs = decltype(edge_inputs<Entry>(std::make_index_sequence<entry::arity>{}));
+    constexpr bool callable = impl::scores<typename entry::target_type, inputs>;
+    static_assert(callable, "an edge's error does not take one estimate per node it links");
+    if constexpr (!callable) {
+      return dual::zero<value_type, width>();  // only to stop here, after the message above
+    } else {
+      return robustified(edge, edge_inputs<Entry>(std::make_index_sequence<entry::arity>{}));
+    }
+  }
+
+  /// @brief An edge's residuals on @p inputs, each robustified against its sigma, and summed.
+  ///
+  /// The residuals are zipped against the sigmas and summed with the library's own summation, so
+  /// the shape here is the same one the bezier fit uses - a fold over paired sequences rather
+  /// than an index-driven loop.
+  template <class Edge, class Inputs>
+  constexpr auto robustified(const Edge &edge, const Inputs &inputs) const {
+    const auto residuals =
+        dual::apply([&](const auto &...in) { return edge.error(in...); }, inputs);
 
     static_assert(
-        std::decay_t<decltype(residuals)>::size() == entry::target_type::dimension,
+        std::decay_t<decltype(residuals)>::size() == Edge::dimension,
         "an edge's error returns a different number of residuals than it declares");
 
     return dual::summation(
         dual::zip(residuals, edge.sigma()),
-        [](const auto &residual, const auto &sigma) { return kernel::radial(residual, sigma); });
+        [](const auto &residual, const auto &scale) { return kernel::radial(residual, scale); });
   }
 
   /// @brief What the edge entered as @p Entry is evaluated on: the estimate of each node it links,

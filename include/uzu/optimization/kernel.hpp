@@ -18,32 +18,13 @@ namespace kernel {
 
 /// @brief How many squarings the kernel is built from, so `N = 2^order` factors.
 ///
-/// This is the one number that picks the curve. The shape is
+/// It picks the curve `1 - (1 - z/N)^N`, with `z = x^2 / 2s^2`: Welsch's estimator as `N` grows,
+/// and at a finite `N` Tukey's biweight generalised, which rejects a residual outright beyond
+/// `s * sqrt(2N)`. Four puts that point at `5.66 * sigma`.
 ///
-///     1 - (1 - z/N)^N          z = x^2 / 2s^2, clamped where the base turns negative
-///
-/// and `N` moves it across a family whose two ends are both standard robust estimators. As `N`
-/// grows the curve tends to `1 - exp(-z)`, the Welsch estimator, which never quite stops pulling.
-/// At a finite `N` it is Tukey's biweight generalised - the familiar cubic is this shape at
-/// `N = 3` - and it reaches 1 exactly, at `x = s * sqrt(2N)`, beyond which a residual contributes
-/// nothing at all and no derivative at all. That rejection point is the reason to prefer a small
-/// `N`, not a concession for using one.
-///
-/// Four puts it at `5.66 * sigma`. Sigma already says where a residual stops being ordinary, so a
-/// residual six sigma out is not an observation the fit should still be arguing with.
-///
-/// The cost side agrees. Each squaring carries all of a dual's derivatives with it, so the work
-/// is linear in the order at both compile and run time:
-///
-///     order   rejection    fit of 1e6 passes   compiling the tests
-///         4      5.66 s               0.06 s                8.9 s
-///         8      22.6 s               0.10 s               10.9 s
-///        16       362 s               0.20 s               14.8 s
-///        20      1448 s               0.28 s               17.0 s
-///
-/// Raising it is one number, but it is a change of curve, not a refinement of one: the converged
-/// error moves too, from 0.71664 at 4 to 0.71274 in the limit. `test.cpp`'s finite-difference
-/// step is tied to this as well - see the note there.
+/// Raising it changes the curve, not only its accuracy, and the finite-difference step in
+/// `tests/graph_derivatives_test.cpp` depends on it. See "Picking the kernel" in
+/// `docs/design.md` for the family, what each order costs, and that coupling.
 inline constexpr std::size_t order = 4;
 
 /// @brief The redescending kernel `1 - (1 - z/N)^N`, with `z = x^2 / 2s^2` and `N = 2^order`.

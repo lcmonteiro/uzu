@@ -13,9 +13,8 @@
 /// clang refuses one past 256 elements; an array is flat at any length.
 ///
 /// C++20 has `constexpr` versions of all three in `<numeric>` and `<algorithm>`. These exist
-/// anyway for the reason `dual/number.hpp` keeps a hand-written search instead of `std::find`:
-/// measured there, the standard one cost 5% more of the compiler's front end, for no difference
-/// in what it computes. These need nothing but `begin` and `end` on what they are given.
+/// anyway for the reason `dual::number` keeps a hand-written search instead of `std::find`: the
+/// standard ones are slower to compile, for no difference in what they compute.
 /// ===============================================================================================
 #ifndef UZU_HELPERS_RANGES_HPP
 #define UZU_HELPERS_RANGES_HPP
@@ -35,13 +34,13 @@ struct truthy {
 
 }  // namespace impl
 
-/// @brief @p init plus every element of @p range, added left to right.
+/// @brief @p total plus every element of @p range, added left to right.
 template <class Range, class T>
-constexpr auto accumulate(const Range &range, T init) -> T {
+constexpr auto accumulate(const Range &range, T total) -> T {
   for (const auto &value : range) {
-    init = std::move(init) + value;
+    total = std::move(total) + value;
   }
-  return init;
+  return total;
 }
 
 /// @brief Whether @p pred holds for at least one element of @p range. Stops at the first that

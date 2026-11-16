@@ -58,6 +58,17 @@ static_assert(subtracted.dvalue<1>() == 2.0, "and the derivatives at the indices
 static_assert(subtracted.dvalue<3>() == 0.0 && subtracted.dvalue<0>() == 0.0, "back where it was");
 
 // ---------------------------------------------------------------------------------------------
+// Widening a number to more indices.
+// ---------------------------------------------------------------------------------------------
+
+constexpr dual::number<double, 0, 1, 2> widened = dual::number<double, 1>{5.0, 2.0};
+
+static_assert(widened.value() == 5.0, "widening keeps the value");
+static_assert(widened.dvalue<1>() == 2.0, "and the derivatives the source carried");
+static_assert(
+    widened.dvalue<0>() == 0.0 && widened.dvalue<2>() == 0.0, "and adds zeros, not seeds");
+
+// ---------------------------------------------------------------------------------------------
 // Reading derivatives out.
 // ---------------------------------------------------------------------------------------------
 

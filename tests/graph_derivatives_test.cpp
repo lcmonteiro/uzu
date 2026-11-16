@@ -120,7 +120,7 @@ struct sum_of_coordinates : uzu::edge<sum_of_coordinates, std::array<double, 1>,
 
   template <class A>
   constexpr auto error(const A &a) const {
-    return dual::array{std::get<0>(a) + std::get<1>(a) - measurement()[0]};
+    return dual::array{get<0>(a) + get<1>(a) - measurement()[0]};
   }
 };
 

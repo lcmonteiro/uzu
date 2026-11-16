@@ -69,12 +69,21 @@ Every header compiles standalone under GCC 13.3 and Clang 18.1.
 
 Moving the headers under one include root put every one of them in the build
 for the first time, under `-Wall -Wextra` and as a standalone translation unit.
-That surfaced four things, all fixed here:
+That surfaced four things, all fixed here (the first nine rows came later, from review):
 
 | file | fix |
 | --- | --- |
 | `functional/view.hpp`, `functional/zip.hpp` | the index sequence is a deduction tag and is never read, so it is left unnamed rather than named and ignored (`-Wunused-parameter`) |
-| `array.hpp` | the copy constructor is declared alongside the user-declared copy assignment, which otherwise deprecates it (`-Wdeprecated-copy`). Behaviour is unchanged: move stays suppressed, as it already was |
+| `array.hpp` | the copy assignment upstream declares is removed, along with the copy constructor once added here to keep it warning-free. Neither was needed - a template `operator=` is never the copy assignment - and with both gone the array copies and moves implicitly, as its trivially copyable numbers do |
+| `array.hpp`, `operations/{cos,exp,log,pow,sin,sqrt}.hpp` | `get<N>` for `dual::array` and the six math functions were overloads added to `namespace std`, which is undefined behaviour. They are free functions in `dual` now, found by ADL (`sin(n)`, `get<0>(a)`); the functors they call are renamed `sin_operation` etc. to free the names. `std::tuple_size` and `std::tuple_element` stay specialised in `std`, which is allowed |
+| `number.hpp` | the conversion to the scalar is `explicit`, so `std::sin(n)` is a compile error rather than a silent call to the scalar overload that drops the derivatives |
+| `operations/base.hpp` | an element-wise operation on arrays of different lengths is a `static_assert`; it used to truncate to the second operand's length |
+| `operations/pow.hpp` | the derivative is zero, not NaN, where the formula multiplies zero by infinity: a zero exponent, a zero base under a positive exponent, and any base under an exponent that does not vary |
+| `functional/product.hpp` | did not compile: it built a `dual::array` out of tuples, which the array rejects. It now returns the Cartesian product as a tuple of rows of references, the shape `zip` returns, so `summation` folds over it. The mutable overload went with the fix; nothing used it |
+| `functional/transform.hpp` | the `dual::array` overload did not compile: it called `std::apply` on each element, which is a number, not a tuple. Both overloads are `constexpr` now |
+| `operations/base.hpp` | a number combines with a scalar of any arithmetic type but `bool`, converted to the number's own scalar type, so `n * 2` works. Two numbers must share a scalar type. Both used to pass the operator's constraint and then fail inside `std::invoke` |
+| `operations/` | the sixteen `*_transform` and `*_broadcast` structs, and the three CRTP bases behind them, are one adaptor, `elementwise<Op>` in `base.hpp`, which applies an operation's own functor element by element. Each operation now declares one array overload instead of two, and calls its functor directly rather than through `std::invoke` |
+| all vendored headers | the `@tparam`/`@param`/`@return` lines that restated a signature are gone - about 420 of them - leaving a `@brief` per declaration and the few tags that state a precondition. Docs that were wrong are fixed: `number`'s constructors, `log`'s derivative at zero, `duo`, and `number<T, S>` for a template that is `number<T, Dn...>`. `indices_interception_t` is `indices_intersection_t` |
 | `types/bezier_curve_5.hpp` | `<algorithm>`, `<cmath>`, `<cstddef>`, `<limits>`, `<numeric>` and `<utility>` added — it used `std::abs`, `std::clamp`, `size_t`, `std::numeric_limits` and `std::index_sequence` without them |
 | `types/bezier_curve_5.hpp` | `iota<T, N>()` added. The header called it without ever declaring it; GCC rejects the non-dependent name outright, and Clang only accepted it because the member initializer was never instantiated. It is spelled the way `bezier_curve.hpp`, which this was extracted from, spells it |
 

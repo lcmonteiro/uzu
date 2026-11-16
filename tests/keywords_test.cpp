@@ -85,6 +85,30 @@ constexpr auto unmeasured = relative(sigma = {2.0, 3.0});
 static_assert(unmeasured.sigma()[0] == 2.0, "a measurement-free edge still takes sigma");
 static_assert(unmeasured.sigma()[1] == 3.0, "one per residual");
 
+// ---------------------------------------------------------------------------------------------
+// Only the keywords a thing takes, each at most once.
+//
+// Passing a stray or repeated keyword is a compile error, which cannot be asserted here for the
+// same reason. What can be is the pair of properties that error is made of.
+// ---------------------------------------------------------------------------------------------
+
+using lr_argument = decltype(uzu::lr = 0.1);
+using beta_argument = decltype(uzu::beta = 0.9);
+using sigma_argument = decltype(sigma = {2.0});
+
+using momentum_keywords = uzu::impl::keyword_set<uzu::impl::lr_tag, uzu::impl::beta_tag>;
+
+static_assert(momentum_keywords::known<>, "no keywords at all is fine: each has a default");
+static_assert(momentum_keywords::known<lr_argument, beta_argument>, "the ones it takes");
+static_assert(momentum_keywords::known<beta_argument, lr_argument>, "in either order");
+static_assert(!momentum_keywords::known<lr_argument, sigma_argument>, "and no other");
+
+static_assert(momentum_keywords::unique<lr_argument, beta_argument>, "each once");
+static_assert(!momentum_keywords::unique<lr_argument, beta_argument, lr_argument>, "never twice");
+static_assert(
+    !momentum_keywords::unique<lr_argument, decltype(uzu::lr = 1)>,
+    "whatever type the second one was written with");
+
 }  // namespace
 
 /// @brief Everything above has already passed by the time this runs; reaching it means the

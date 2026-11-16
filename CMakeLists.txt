@@ -16,6 +16,8 @@ endif()
 option(UZU_BUILD_TESTS "Build uzu tests" ON)
 option(UZU_BUILD_EXAMPLES "Build uzu examples" ON)
 option(UZU_BUILD_BENCHMARKS "Build uzu benchmarks" OFF)
+option(UZU_WARNINGS_AS_ERRORS "Fail the tests' and benchmarks' build on any warning" OFF)
+option(UZU_SANITIZE "Build the tests with AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
 
 # ---------------------------------------------------------------------------
 # uzu library (header-only, no dependencies)
@@ -58,8 +60,32 @@ endfunction()
 function(uzu_warnings target)
   if(MSVC)
     target_compile_options(${target} PRIVATE /W4)
+    if(UZU_WARNINGS_AS_ERRORS)
+      target_compile_options(${target} PRIVATE /WX)
+    endif()
   else()
-    target_compile_options(${target} PRIVATE -Wall -Wextra)
+    # -Wshadow because the keywords are meant to be imported by name (`using uzu::sigma;`), and
+    # the library must not then reuse those names for its own variables.
+    target_compile_options(${target} PRIVATE -Wall -Wextra -Wshadow)
+    if(UZU_WARNINGS_AS_ERRORS)
+      target_compile_options(${target} PRIVATE -Werror)
+    endif()
+  endif()
+endfunction()
+
+# ---------------------------------------------------------------------------
+# Sanitizers, for the tests
+#
+# Most of the suite is static_asserts, which no sanitizer sees: the compiler has already rejected
+# undefined behaviour in a constant expression. What this covers is the few tests that run - the
+# dual tests and the trajectory fit. -fno-sanitize-recover makes undefined behaviour fail the test
+# rather than print and carry on.
+# ---------------------------------------------------------------------------
+function(uzu_sanitize target)
+  if(UZU_SANITIZE AND NOT MSVC)
+    set(flags -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer)
+    target_compile_options(${target} PRIVATE ${flags})
+    target_link_options(${target} PRIVATE ${flags})
   endif()
 endfunction()
 

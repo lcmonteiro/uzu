@@ -20,7 +20,7 @@ include/
     graph/
       graph.hpp                         the error, the gradient and the fit
       entries.hpp                       key(), link(), and the nodes and edges lists
-      contracts.hpp                     the compile-time check that edges resolve
+      contracts.hpp                     node_like, edge_like, algorithm_for; edges resolve
       node.hpp                          the node base
       edge.hpp                          the edge base
     kernel.hpp                          the radial kernel
@@ -125,8 +125,8 @@ lives on a manifold rather than in a vector space.
 ### What a node and an edge are declared with
 
 ```cpp
-template <class Derived, class Estimation, auto Dimension>  class node;
-template <class Derived, class Measurement, auto Dimension> class edge;
+template <class Derived, class Estimation, std::size_t Dimension>  class node;
+template <class Derived, class Measurement, std::size_t Dimension> class edge;
 ```
 
 Both take what they hold as a type rather than a scalar and a count, and name it
@@ -176,7 +176,7 @@ template <std::size_t Width>
 constexpr auto build() const -> instance<Width>;   // on the builder
 
 template <std::size_t Index>
-auto step(value_type gradient) -> value_type;      // on the instance
+auto step(value_type slope) -> value_type;         // on the instance
 ```
 
 An algorithm that keeps one value per dual index wants that state to be a
@@ -211,8 +211,8 @@ plain rule:
 
 ```cpp
 template <std::size_t Index>
-auto step(value_type gradient) -> value_type {
-  return -rate_ * gradient;
+auto step(value_type slope) -> value_type {
+  return -rate_ * slope;
 }
 ```
 
@@ -295,6 +295,10 @@ a `std::array`, but it binds to a reference to a raw array and carries its
 length along. The constructors then pick their arguments out by tag, so order
 does not matter and a missing keyword falls back to a documented default.
 
+Each constructor names the keywords it takes and checks that it was given only those, each at
+most once: `gradient{beta = 0.9}` and `momentum{lr = 0.1, lr = 0.5}` are compile errors rather
+than a keyword quietly dropped.
+
 A keyword takes the type of that default rather than the one written at the
 call site, so `lr = 1` means `lr = 1.0`. Without that, the integer would reach
 a `double` member through a braced initialiser, which is a narrowing conversion
@@ -329,13 +333,15 @@ else has to include it by name:
 #include "uzu/foundation/dual/operations/sin.hpp"
 ```
 
-Leaving them out does not fail at the call site. `number` converts implicitly
-to `const double &`, so `std::sin` resolves to the ordinary one, takes the
-value, and hands back a plain `double` with no derivative attached. An edge
-collecting its residual into a `dual::array` is caught, because that
-`static_assert` rejects a `double` element - but one that folded its residual
-down to a scalar would have no such guard, and the fit would run against a
-derivative that was silently always zero.
+The math functions live in `dual`, not in `std` - adding overloads to `std` is undefined
+behaviour - so an edge calls them unqualified and argument-dependent lookup finds them:
+`sin(x)`, not `std::sin(x)`. Generic code that also has to accept a plain `double` says
+`using std::sin;` first.
+
+Getting it wrong is a compile error at the call site. `number` converts to its scalar only
+explicitly, so `std::sin(x)` on a dual has no viable overload, and a missing include leaves
+unqualified `sin(x)` with nothing to find either. Neither can quietly take the value and hand
+back a plain `double` with the derivatives dropped.
 
 ## What the fit does, per pass
 
@@ -509,7 +515,8 @@ fit *looking* wrong. One file per property group, each built against
 - **A builder carries no state.** One `momentum{...}` handed to two graphs
   leaves the second starting from rest however hard the first was run - the
   property the builder-and-instance split exists to give.
-- Sigma broadcasting, and keyword order independence.
+- Sigma broadcasting, keyword order independence, and that a stray or repeated keyword is
+  rejected.
 - **A four-pose chain is recovered exactly**, started from a single point that
   every pose shares, so the fit has to separate them as well as place them -
   and recovered by the compiler, like everything above it.
@@ -542,8 +549,8 @@ fit *looking* wrong. One file per property group, each built against
 
 The build is warning-free under `-Wall -Wextra` on both GCC and Clang. Two of
 those warnings were pre-existing in the vendored duals - an unused index-tag
-parameter in `functional/zip.hpp` and `functional/view.hpp`, and an implicit
-copy constructor alongside a user-declared assignment in `array.hpp` - and are
+parameter in `functional/zip.hpp` and `functional/view.hpp`, and a needless
+user-declared copy assignment in `array.hpp`, now removed - and are
 fixed here rather than carried, now that the duals live in this repository's
 own include tree instead of as a one-file diff against a snapshot. See
 [dual-snapshot.md](dual-snapshot.md) for what else has drifted from upstream.

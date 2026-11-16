@@ -264,6 +264,22 @@ To use the headers without building the tests:
 cmake -S . -B build -DUZU_BUILD_TESTS=OFF
 ```
 
+CI builds each compiler two ways, and either can be reproduced locally:
+
+```bash
+# Release, any warning an error, benchmarks included
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DUZU_WARNINGS_AS_ERRORS=ON -DUZU_BUILD_BENCHMARKS=ON
+
+# Debug, the tests that run under AddressSanitizer and UndefinedBehaviorSanitizer
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DUZU_WARNINGS_AS_ERRORS=ON -DUZU_SANITIZE=ON
+```
+
+It also checks every C++ file against `.clang-format` with clang-format 18:
+
+```bash
+git ls-files '*.hpp' '*.cpp' '*.h' | xargs clang-format-18 --dry-run --Werror
+```
+
 ### Use it in your project
 
 The library exports the target `uzu::uzu`:
@@ -428,13 +444,17 @@ actually built.
 | [graph_descent_test.cpp](tests/graph_descent_test.cpp) | The error never rises across 200 passes, and an exact reflection symmetry survives the fit. |
 | [graph_algorithm_test.cpp](tests/graph_algorithm_test.cpp) | `beta = 0` is plain descent exactly; the velocity accumulates as written; a builder carries no state; momentum converges in fewer passes. |
 | [graph_enable_test.cpp](tests/graph_enable_test.cpp) | A disabled edge leaves the error and gradient exactly as if it were not declared; a disabled node is held while its neighbour moves; both switch back on. |
-| [graph_contracts_test.cpp](tests/graph_contracts_test.cpp) | The edge contract on its own: an edge over an undeclared key is caught, and an empty edge list passes. |
+| [graph_contracts_test.cpp](tests/graph_contracts_test.cpp) | The edge contract on its own: an edge over an undeclared key is caught, and an empty edge list passes. The node and edge bases cannot be sliced or used alone. |
+| [graph_concepts_test.cpp](tests/graph_concepts_test.cpp) | `node_like`, `edge_like` and `algorithm_for` accept the library's own types and reject each mistake they exist for: a node without `plus`, a base naming the wrong class, an edge's `error` taking the wrong number of nodes, an algorithm that cannot build or step. |
 | [keyed_layout_test.cpp](tests/keyed_layout_test.cpp) | The generic layout: lookups, offsets, width, and a repeated key caught, with no graph involved. |
 | [dual_derivatives_test.cpp](tests/dual_derivatives_test.cpp) | `dual::zero` widens a sum to every index; `dual::derivatives` reads a full range or a slice back out. |
-| [keywords_test.cpp](tests/keywords_test.cpp) | Sigma broadcasting, and keyword order independence. |
+| [dual_functional_test.cpp](tests/dual_functional_test.cpp) | `dual::product` is every combination in row-major order and folds with `summation`, over plain and dual containers; `dual::transform` carries derivatives through. |
+| [dual_operators_test.cpp](tests/dual_operators_test.cpp) | A number with a scalar of any arithmetic type, converted to the number's own; two numbers of different scalar types, or a `bool`, rejected at the operator. |
+| [keywords_test.cpp](tests/keywords_test.cpp) | Sigma broadcasting, keyword order independence, and that a stray or repeated keyword is rejected. |
 | [trajectory_compile_time_test.cpp](tests/trajectory_compile_time_test.cpp) | A four-pose chain, started from one point, recovered exactly — by the compiler. |
 | [optimization_trajectory_test.cpp](tests/optimization_trajectory_test.cpp) | A noisy 12- and 24-pose trajectory with random initial guesses and loop closures, recovered to within vortex's own accuracy bound. The one test here that runs rather than compiles, and most of the suite's build time. |
-| [dual_test.cpp](tests/dual_test.cpp), [dual_array_test.cpp](tests/dual_array_test.cpp) | The duals themselves, as run-time programs carried over from the vendored snapshot. |
+| [dual_pow_test.cpp](tests/dual_pow_test.cpp) | `pow` where the derivative formula multiplies zero by infinity: a zero base, a zero exponent, a negative base under a constant exponent. Run-time, because `std::pow` is. |
+| [dual_test.cpp](tests/dual_test.cpp), [dual_array_test.cpp](tests/dual_array_test.cpp) | The duals themselves, as run-time programs carried over from the vendored snapshot: every value and derivative checked against its formula or a central finite difference, with failures on `stderr` so the printed output stays byte for byte comparable. |
 
 A clean build of the whole suite takes about 47 s on GCC and 59 s on Clang
 with `-j`, most of it the trajectory pair. Every test is deterministic: the

@@ -25,21 +25,19 @@ namespace uzu {
 /// error at the graph, naming the edge, instead of a sigma quietly zipped against the wrong row.
 ///
 /// Sigma is one per residual, so `sigma = {2.0, 3.0}` sets them apart and `sigma = {2.0}` is
-/// broadcast across them all. That is a property of the keyword now rather than of the type, so
-/// an edge whose dimensions are alike is written the short way without declaring anything.
+/// broadcast across them all.
 ///
-/// `init` gives the measurement, the way it gives a node its estimate: an edge is a measurement
-/// and the sigmas it is weighed with, so both are stated where the edge is built rather than one
-/// at construction and the other through a setter afterwards. The setter stays, because a
-/// measurement that arrives later - read from a sensor, or swept over in a loop - has to go
-/// somewhere; what it is no longer needed for is saying what an edge *is*.
+/// `init` gives the measurement, the way it gives a node its estimate, so an edge is stated
+/// whole where it is built. The `measurement` setter is for one that arrives later - read from a
+/// sensor, or swept over in a loop.
 ///
-/// @tparam Derived The derived edge type.
+/// @tparam Derived The derived edge type: the class deriving from this one, which
+/// `uzu::edge_like` checks.
 /// @tparam Measurement What the edge is scored against. Named `measurement_type` inside, and
 /// supplies the scalar as its own `value_type` - which is what this class then calls `value_type`
 /// too. An edge with nothing to compare to declares `std::array<double, 0>`.
 /// @tparam Dimension How many residuals `error` returns.
-template <class Derived, class Measurement, auto Dimension>
+template <class Derived, class Measurement, std::size_t Dimension>
 class edge {
  public:
   /// @brief What the edge is measured against.
@@ -67,6 +65,7 @@ class edge {
   explicit constexpr edge(const Args &...args)
       : sigma_{impl::find_all<impl::sigma_tag>(filled(value_type{1}), args...)},
         measurement_{measured(args...)} {
+    impl::keyword_set<impl::init_tag, impl::sigma_tag>::check<Args...>();
   }
 
   /// @brief The sigmas, laid out one per residual and ready to be zipped against one.
@@ -100,6 +99,19 @@ class edge {
   constexpr auto disable() -> void {
     enabled_ = false;
   }
+
+ protected:
+  /// @brief Copied, moved and destroyed only as part of the derived class.
+  ///
+  /// Protected rather than public so that the base cannot be made, copied or destroyed on its
+  /// own - which would slice a derived edge down to it (C.35, C.67). The constructors stay public:
+  /// a derived class takes them with `using base::base;`, and an inherited constructor keeps the
+  /// base's access, so a protected one would make every derived edge unconstructible.
+  constexpr edge(const edge &) = default;
+  constexpr edge(edge &&) = default;
+  constexpr auto operator=(const edge &) -> edge & = default;
+  constexpr auto operator=(edge &&) -> edge & = default;
+  constexpr ~edge() = default;
 
  private:
   /// @brief The measurement `init` asks for, or a zeroed one.

@@ -1,40 +1,40 @@
 /// ===============================================================================================
 /// @file
 ///
-/// @brief Provides utilities to transform elements of dual::array and
-/// std::array using a predicate.
+/// @brief `transform`: a new array from applying a function to each element of one.
 /// ===============================================================================================
 #ifndef UZU_FOUNDATION_DUAL_FUNCTIONAL_TRANSFORM_HPP
 #define UZU_FOUNDATION_DUAL_FUNCTIONAL_TRANSFORM_HPP
+
+#include <array>
+#include <cstddef>
+#include <tuple>
 
 #include "uzu/foundation/dual/array.hpp"
 
 namespace dual {
 
-/// @brief Applies a predicate to each element of a dual::array, returning a new
-/// dual::array.
-/// @tparam F Type of the predicate/function to apply.
+/// @brief Applies @p f to each element of a dual::array, returning a new dual::array.
+/// @tparam F Callable taking one element and returning a `dual::number`.
 /// @tparam Ts Types of the array elements.
-/// @param data The dual::array whose elements will be transformed.
-/// @param predicate The function to apply to each element.
-/// @return A new dual::array with transformed elements.
+/// @param data The array whose elements will be transformed.
+/// @param f The function to apply to each element.
+/// @return A dual::array of what @p f returned, in order.
 template <class F, class... Ts>
-inline auto transform(const array<Ts...> &data, F predicate) {
-  return std::apply(
-      [&](const auto &...elems) { return array(std::apply(predicate, elems)...); }, data.storage());
+constexpr auto transform(const array<Ts...> &data, F f) {
+  return std::apply([&](const auto &...elems) { return array(f(elems)...); }, data.storage());
 }
 
-/// @brief Applies a predicate to each element of a std::array, returning a new
-/// std::array.
-/// @tparam F Type of the predicate/function to apply.
+/// @brief Applies @p f to each element of a std::array, returning a new std::array.
+/// @tparam F Callable taking one element.
 /// @tparam T Type of the array elements.
 /// @tparam N Size of the array.
-/// @param data The std::array whose elements will be transformed.
-/// @param predicate The function to apply to each element.
-/// @return A new std::array with transformed elements.
+/// @param data The array whose elements will be transformed.
+/// @param f The function to apply to each element.
+/// @return A std::array of what @p f returned, in order.
 template <class F, class T, std::size_t N>
-inline auto transform(const std::array<T, N> &data, F predicate) {
-  return std::apply([&](const auto &...elems) { return std::array{predicate(elems)...}; }, data);
+constexpr auto transform(const std::array<T, N> &data, F f) {
+  return std::apply([&](const auto &...elems) { return std::array{f(elems)...}; }, data);
 }
 
 }  // namespace dual

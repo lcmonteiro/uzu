@@ -206,7 +206,8 @@ constexpr auto measure_first_step() -> first_step_report {
 
 constexpr auto first_step = measure_first_step();
 
-static_assert(close(first_step.near_x, 1.25, 1e-12), "the first step is lr, towards the measurement");
+static_assert(
+    close(first_step.near_x, 1.25, 1e-12), "the first step is lr, towards the measurement");
 static_assert(close(first_step.far_x, 1.25, 1e-12), "however far away the measurement is");
 static_assert(close(first_step.far_y, 0.75, 1e-12), "and in each dimension by its own sign");
 
@@ -229,6 +230,9 @@ static_assert(heavy_exact == 0, "where momentum does not in two thousand");
 auto main() -> int {
   std::printf(
       "  (passes to error < 0.02: descent %d, momentum %d, rprop %d; to 1e-12: rprop %d)\n",
-      plain_passes, heavy_passes, rprop_passes, rprop_exact);
+      plain_passes,
+      heavy_passes,
+      rprop_passes,
+      rprop_exact);
   return uzu::test::passed("algorithms");
 }

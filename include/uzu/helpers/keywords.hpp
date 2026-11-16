@@ -72,6 +72,44 @@ concept keyword_argument = is_argument<std::decay_t<T>>::value;
 template <class Tag, class Argument>
 constexpr bool tagged = std::is_same_v<Tag, typename std::decay_t<Argument>::tag_type>;
 
+/// @brief The keywords one constructor or function takes, and the check that it was given only
+/// those, each at most once.
+///
+/// The lookups below find the keyword they are asked for and ignore the rest, so on their own
+/// they would let `gradient{beta = 0.9}` compile and quietly drop `beta`, and let a keyword given
+/// twice resolve to whichever came first. Whoever takes keywords names the ones it means and
+/// calls `check`:
+///
+///     impl::keyword_set<impl::lr_tag, impl::beta_tag>::check<Args...>();
+///
+/// `known` and `unique` are the two properties on their own, so that they can be tested.
+/// @tparam Tags The keywords taken.
+template <class... Tags>
+struct keyword_set {
+  /// @brief Whether @p Argument is one of the keywords taken.
+  template <class Argument>
+  static constexpr bool has = (tagged<Tags, Argument> || ...);
+
+  /// @brief Whether every argument is one of the keywords taken.
+  template <class... Args>
+  static constexpr bool known = (has<Args> && ...);
+
+  /// @brief How many of the arguments carry @p Tag.
+  template <class Tag, class... Args>
+  static constexpr std::size_t count = (std::size_t{0} + ... + (tagged<Tag, Args> ? 1 : 0));
+
+  /// @brief Whether no keyword is given more than once.
+  template <class... Args>
+  static constexpr bool unique = ((count<Tags, Args...> <= 1) && ...);
+
+  /// @brief Stops the build unless the arguments are known and unique.
+  template <class... Args>
+  static constexpr auto check() -> void {
+    static_assert(known<Args...>, "a keyword was given that is not one this takes");
+    static_assert(unique<Args...>, "the same keyword was given more than once");
+  }
+};
+
 /// @brief Finds the argument carrying Tag among the ones given.
 ///
 /// The recursion is over the argument list of one constructor call, which is
