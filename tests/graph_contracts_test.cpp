@@ -61,6 +61,11 @@ static_assert(std::is_destructible_v<uzu::test::point2>, "a derived node can");
 static_assert(std::is_trivially_copyable_v<uzu::test::point2>, "and copies as plainly as before");
 static_assert(std::is_trivially_copyable_v<uzu::test::absolute>, "an edge too");
 
+// A dimension is a count, so however it is written it names the same base.
+static_assert(
+    std::is_same_v<node_base, uzu::node<uzu::test::point2, std::array<double, 2>, std::size_t{2}>>,
+    "a dimension written as an int or as a std::size_t is one type");
+
 }  // namespace
 
 /// @brief Everything above has already passed by the time this runs.

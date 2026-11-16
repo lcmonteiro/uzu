@@ -125,8 +125,8 @@ lives on a manifold rather than in a vector space.
 ### What a node and an edge are declared with
 
 ```cpp
-template <class Derived, class Estimation, auto Dimension>  class node;
-template <class Derived, class Measurement, auto Dimension> class edge;
+template <class Derived, class Estimation, std::size_t Dimension>  class node;
+template <class Derived, class Measurement, std::size_t Dimension> class edge;
 ```
 
 Both take what they hold as a type rather than a scalar and a count, and name it

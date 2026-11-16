@@ -39,7 +39,7 @@ namespace uzu {
 /// supplies the scalar as its own `value_type` - which is what this class then calls `value_type`
 /// too. An edge with nothing to compare to declares `std::array<double, 0>`.
 /// @tparam Dimension How many residuals `error` returns.
-template <class Derived, class Measurement, auto Dimension>
+template <class Derived, class Measurement, std::size_t Dimension>
 class edge {
  public:
   /// @brief What the edge is measured against.

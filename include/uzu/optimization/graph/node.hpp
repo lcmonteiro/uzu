@@ -35,7 +35,7 @@ namespace uzu {
 /// scalar as its own `value_type` - which is what this class then calls `value_type` too.
 /// @tparam Dimension How many numbers `plus` receives - the dimension the graph moves this node
 /// in, and the number of dual indices it takes up. Must match the estimate's width; see above.
-template <class Derived, class Estimation, auto Dimension>
+template <class Derived, class Estimation, std::size_t Dimension>
 class node {
  public:
   /// @brief The estimate: what `estimation()` hands back and `plus` returns.
