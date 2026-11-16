@@ -428,7 +428,8 @@ actually built.
 | [graph_descent_test.cpp](tests/graph_descent_test.cpp) | The error never rises across 200 passes, and an exact reflection symmetry survives the fit. |
 | [graph_algorithm_test.cpp](tests/graph_algorithm_test.cpp) | `beta = 0` is plain descent exactly; the velocity accumulates as written; a builder carries no state; momentum converges in fewer passes. |
 | [graph_enable_test.cpp](tests/graph_enable_test.cpp) | A disabled edge leaves the error and gradient exactly as if it were not declared; a disabled node is held while its neighbour moves; both switch back on. |
-| [graph_contracts_test.cpp](tests/graph_contracts_test.cpp) | The edge contract on its own: an edge over an undeclared key is caught, and an empty edge list passes. |
+| [graph_contracts_test.cpp](tests/graph_contracts_test.cpp) | The edge contract on its own: an edge over an undeclared key is caught, and an empty edge list passes. The node and edge bases cannot be sliced or used alone. |
+| [graph_concepts_test.cpp](tests/graph_concepts_test.cpp) | `node_like`, `edge_like` and `algorithm_for` accept the library's own types and reject each mistake they exist for: a node without `plus`, a base naming the wrong class, an edge's `error` taking the wrong number of nodes, an algorithm that cannot build or step. |
 | [keyed_layout_test.cpp](tests/keyed_layout_test.cpp) | The generic layout: lookups, offsets, width, and a repeated key caught, with no graph involved. |
 | [dual_derivatives_test.cpp](tests/dual_derivatives_test.cpp) | `dual::zero` widens a sum to every index; `dual::derivatives` reads a full range or a slice back out. |
 | [dual_functional_test.cpp](tests/dual_functional_test.cpp) | `dual::product` is every combination in row-major order and folds with `summation`, over plain and dual containers; `dual::transform` carries derivatives through. |

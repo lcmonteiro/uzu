@@ -24,6 +24,8 @@ namespace impl {
 /// dimension is the width of the block it takes up.
 template <std::size_t Key, class Node>
 struct node_entry {
+  using target_type = Node;
+
   static constexpr std::size_t key = Key;
   static constexpr std::size_t width = Node::dimension;
 

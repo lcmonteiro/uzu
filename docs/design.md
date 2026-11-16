@@ -20,7 +20,7 @@ include/
     graph/
       graph.hpp                         the error, the gradient and the fit
       entries.hpp                       key(), link(), and the nodes and edges lists
-      contracts.hpp                     the compile-time check that edges resolve
+      contracts.hpp                     node_like, edge_like, algorithm_for; edges resolve
       node.hpp                          the node base
       edge.hpp                          the edge base
     kernel.hpp                          the radial kernel

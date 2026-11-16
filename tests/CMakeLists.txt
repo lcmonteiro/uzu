@@ -12,6 +12,7 @@ set(UZU_COMPILE_TIME_TESTS
   graph_descent_test.cpp
   graph_algorithm_test.cpp
   graph_contracts_test.cpp
+  graph_concepts_test.cpp
   graph_enable_test.cpp
   graph_many_edges_test.cpp
   tuple_test.cpp

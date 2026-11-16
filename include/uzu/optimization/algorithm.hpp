@@ -45,6 +45,9 @@
 ///
 /// A stateless algorithm is its own instance and builds a copy of itself.
 ///
+/// The graph checks all of this with `uzu::algorithm_for`, in `graph/contracts.hpp`, so a type
+/// that falls short is named at the graph rather than failing inside it.
+///
 /// The graph calls `step` once per index per pass, in index order, and holds the instance by
 /// value. `step` is non-const so that an instance may keep state between calls.
 /// ===============================================================================================
