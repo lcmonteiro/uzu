@@ -68,10 +68,9 @@ constexpr auto link(Edge &target) {
 
 /// @brief The graph's nodes, in declaration order.
 ///
-/// Nodes and edges are two lists rather than one because they are two kinds of
-/// thing, and every place the graph used to ask an entry which it was is a
-/// place it now does not have to: the index layout walks the node list, the
-/// error walks the edge list, and neither has to skip over the other.
+/// Nodes and edges are two lists rather than one because they are two kinds of thing: the index
+/// layout walks only the node list, the error only the edge list, and neither asks an entry which
+/// kind it is.
 template <class... Entries>
 struct nodes {
   explicit constexpr nodes(Entries... es) : entries{es...} {

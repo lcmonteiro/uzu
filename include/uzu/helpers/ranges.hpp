@@ -13,9 +13,8 @@
 /// clang refuses one past 256 elements; an array is flat at any length.
 ///
 /// C++20 has `constexpr` versions of all three in `<numeric>` and `<algorithm>`. These exist
-/// anyway for the reason `dual/number.hpp` keeps a hand-written search instead of `std::find`:
-/// measured there, the standard one cost 5% more of the compiler's front end, for no difference
-/// in what it computes. These need nothing but `begin` and `end` on what they are given.
+/// anyway for the reason `dual::number` keeps a hand-written search instead of `std::find`: the
+/// standard ones are slower to compile, for no difference in what they compute.
 /// ===============================================================================================
 #ifndef UZU_HELPERS_RANGES_HPP
 #define UZU_HELPERS_RANGES_HPP

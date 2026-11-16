@@ -25,16 +25,14 @@ namespace uzu {
 /// error at the graph, naming the edge, instead of a sigma quietly zipped against the wrong row.
 ///
 /// Sigma is one per residual, so `sigma = {2.0, 3.0}` sets them apart and `sigma = {2.0}` is
-/// broadcast across them all. That is a property of the keyword now rather than of the type, so
-/// an edge whose dimensions are alike is written the short way without declaring anything.
+/// broadcast across them all.
 ///
-/// `init` gives the measurement, the way it gives a node its estimate: an edge is a measurement
-/// and the sigmas it is weighed with, so both are stated where the edge is built rather than one
-/// at construction and the other through a setter afterwards. The setter stays, because a
-/// measurement that arrives later - read from a sensor, or swept over in a loop - has to go
-/// somewhere; what it is no longer needed for is saying what an edge *is*.
+/// `init` gives the measurement, the way it gives a node its estimate, so an edge is stated
+/// whole where it is built. The `measurement` setter is for one that arrives later - read from a
+/// sensor, or swept over in a loop.
 ///
-/// @tparam Derived The derived edge type.
+/// @tparam Derived The derived edge type: the class deriving from this one, which
+/// `uzu::edge_like` checks.
 /// @tparam Measurement What the edge is scored against. Named `measurement_type` inside, and
 /// supplies the scalar as its own `value_type` - which is what this class then calls `value_type`
 /// too. An edge with nothing to compare to declares `std::array<double, 0>`.

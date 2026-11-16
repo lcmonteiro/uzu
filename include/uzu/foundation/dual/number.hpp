@@ -98,19 +98,10 @@ struct number {
 
   /// @brief Storage position of derivative index @p d, or #npos if absent.
   ///
-  /// Replaces `std::get<dvalue_type<D>>` on a tuple. Every call site passes a
-  /// template parameter and binds the result to a `constexpr` local, so the
-  /// scan is folded to a constant and never reaches the generated code.
-  ///
-  /// Written as a loop rather than `std::find`. `std::find` is `constexpr` as
-  /// of C++20 and `dvalue<D>()` above asserts on this result, so the standard
-  /// no longer rules it out - it is just slower to compile, by 5% on the
-  /// bezier benchmark, measured again after the move to C++20.
-  ///
-  /// Returns a sentinel rather than a `std::optional` on purpose: the
-  /// optional is materialised and unwrapped at every use, and -O2 measured
-  /// 8% to 20% slower on this benchmark folding it away, depending on how
-  /// the call site consumed it.
+  /// Every call site passes a template parameter and binds the result to a `constexpr` local, so
+  /// the scan is folded to a constant and never reaches the generated code. A hand-written loop
+  /// and a sentinel, rather than `std::find` and `std::optional`, because both compile measurably
+  /// slower here; see `docs/dual-storage.md`.
   static constexpr std::size_t index_of(std::size_t d) {
     constexpr std::array<std::size_t, sizeof...(Dn)> keys{Dn...};
     for (std::size_t i = 0; i < keys.size(); ++i) {
